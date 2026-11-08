@@ -76,7 +76,8 @@ const steps = [
   .tabs { display: inline-flex; flex-wrap: wrap; padding: 6px; border-radius: 999px; background: var(--light); margin-bottom: 56px; }
   .tabs a { padding: 14px 28px; border-radius: 999px; font-family: var(--font-display); font-weight: 900; font-size: 20px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
   .tabs a[aria-current='page'] { background: var(--red); color: var(--white); }
-  .booking { display: grid; grid-template-columns: 1fr 440px; gap: 64px; align-items: start; }
+  .booking > * { min-width: 0; }
+  .booking { display: grid; grid-template-columns: minmax(0, 1fr) 440px; gap: 64px; align-items: start; }
   .step { display: flex; flex-direction: column; gap: 12px; padding: 24px; }
   .cta-box { background: var(--red); color: var(--bone); padding: 32px; display: flex; flex-direction: column; gap: 20px; }
   .price { display: flex; align-items: baseline; flex-wrap: wrap; gap: 16px; }

@@ -12,7 +12,10 @@ export const CONTACT = {
 
 // TODO : remplacer par les liens Peppy exacts de chaque salle
 export const BOOKING = {
-  essai: { wm1: 'https://app.peppy.cool', wm2: 'https://app.peppy.cool' },
+  essai: {
+    wm1: 'https://app.peppy.cool/quicksell/cl139oqan15463251imow4qafjtk/book/trial/',
+    wm2: 'https://app.peppy.cool', // TODO : lien Peppy essai WM2
+  },
   dropin: { wm1: 'https://app.peppy.cool', wm2: 'https://app.peppy.cool' },
 };
 

@@ -74,5 +74,6 @@ const benefices = ['Plus de cohésion entre collègues', 'Une meilleure écoute 
   .prow .display:last-child { font-size: 46px; }
   .benef { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px; }
   .benef .card { padding: 24px; display: flex; flex-direction: column; gap: 12px; }
-  @media (max-width: 1024px) { .benef { grid-template-columns: repeat(2, 1fr); } .tb { grid-template-columns: 1fr; } }
+  @media (max-width: 1024px) { .benef { grid-template-columns: repeat(2, minmax(0, 1fr)); } .tb { grid-template-columns: 1fr; } }
+  @media (max-width: 600px) { .benef { grid-template-columns: 1fr; } }
 </style>

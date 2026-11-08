@@ -169,12 +169,16 @@ const salles = [SALLES.wm1, SALLES.wm2];
   .post__title { font-size: 36px; line-height: 1; }
   .post__more { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; }
 
+  @media (max-width: 680px) { .cours { min-height: 0; gap: 20px; } .cours__title { font-size: 40px; } .salle__body { padding: 28px 24px; } .salle__photo { padding: 20px; } }
   @media (max-width: 900px) {
     .concept { grid-template-columns: 1fr; }
     .concept__text { padding-top: 0; }
     .hero__inner { padding-top: 250px; }
     .hero__badge { top: 96px; right: 20px; width: 112px; font-size: 17px; }
+  }
+  @media (max-width: 600px) {
     .stats__inner { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 16px; }
+    .stats__inner > :last-child { grid-column: 1 / -1; }
     .stat { flex-direction: column; gap: 4px; }
   }
 </style>

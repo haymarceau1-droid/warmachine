@@ -38,6 +38,7 @@ import { TARIFS, EXTRAS, ROUTES } from '../data/site';
   .extras { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 16px; border: 1px solid var(--line); }
   .extra { padding: 28px; display: flex; flex-direction: column; gap: 6px; }
   .extra + .extra { border-left: 1px solid var(--line); }
-  .extra__price { font-size: 48px; line-height: 1; }
+  .extra__price { font-size: clamp(36px, 4vw, 48px); line-height: 1; white-space: nowrap; }
+  @media (max-width: 600px) { .plan { padding: 28px 24px; } .extra { padding: 22px 18px; } }
   @media (max-width: 900px) { .extras { grid-template-columns: repeat(2, 1fr); } .extra:nth-child(3) { border-left: 0; } .extra:nth-child(n+3) { border-top: 1px solid var(--line); } }
 </style>
