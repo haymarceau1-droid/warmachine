@@ -2,8 +2,9 @@ import { config, collection, fields } from '@keystatic/core';
 
 // Interface d'administration du blog (accessible sur /keystatic).
 // - En local (npm run dev) : les articles sont écrits directement dans le dossier du projet.
-// - En ligne : mettre PUBLIC_KEYSTATIC_STORAGE=github (ou cloud) — voir README, section « Blog : accès client ».
-const storageKind = import.meta.env.PUBLIC_KEYSTATIC_STORAGE ?? 'local';
+// - En ligne : stockage GitHub par défaut (le mode local ne voit pas les fichiers sur Vercel → « empty collection »).
+//   PUBLIC_KEYSTATIC_STORAGE=cloud pour Keystatic Cloud — voir README, section « Blog : accès client ».
+const storageKind = import.meta.env.PUBLIC_KEYSTATIC_STORAGE ?? (import.meta.env.PROD ? 'github' : 'local');
 
 const storage =
   storageKind === 'cloud'
