@@ -14,7 +14,8 @@ npm run preview
 
 ## Où modifier quoi
 
-- **Tout le contenu** (tarifs, planning, coachs, horaires, avis, articles, FAQ, liens) : `src/data/site.ts`
+- **Articles du blog** : depuis l'admin `/keystatic` (fichiers dans `src/content/articles/`)
+- **Le reste du contenu** (tarifs, planning, coachs, horaires, avis, FAQ, liens) : `src/data/site.ts`
 - **Couleurs, typographies, boutons** : `src/styles/global.css`
 - **Header / footer / bloc « Une envie de tester ? »** : `src/components/`
 - **Photos** : `public/images/` (voir `public/images/README.md`)
@@ -44,5 +45,32 @@ Les URL reprennent celles du site actuel pour conserver le référencement.
 - [ ] Liens de réservation Peppy exacts (`BOOKING` dans `site.ts`)
 - [ ] Envoi des formulaires (`FORM_ENDPOINT` dans `site.ts` : Formspree, Brevo…)
 - [ ] Lien Instagram (`CONTACT.instagram`)
-- [ ] Contenu des 8 autres articles de blog, de la FAQ et des pages légales
+- [ ] Contenu des 8 autres articles (via l'admin), de la FAQ et des pages légales
 - [ ] Bannière cookies si des outils de mesure sont ajoutés
+
+## Blog : accès client
+
+Le blog se gère depuis une interface d'administration, **Keystatic**, sur `/keystatic`.
+Ton client y écrit ses articles (titre, catégorie, image, résumé, texte mis en forme), coche « Brouillon » pour les garder privés et « Mettre à la une » pour les afficher en grand.
+Chaque article est un fichier dans `src/content/articles/` ; les images vont dans `public/images/blog/`.
+
+### En local
+
+`npm run dev`, puis ouvrir http://localhost:4321/keystatic. Les articles sont écrits directement dans le dossier du projet.
+
+### En ligne (Netlify)
+
+Le site est configuré pour Netlify (`netlify.toml`) : les pages restent statiques, seule l'admin tourne côté serveur.
+À chaque publication, Keystatic crée un commit sur GitHub, Netlify reconstruit le site et l'article est en ligne en 1 à 2 minutes.
+
+1. **Mettre le site sur Netlify** : « Add new site » → « Import from GitHub » → dépôt `haymarceau1-droid/warmachine`. Les réglages de build sont lus dans `netlify.toml`.
+2. **Créer la GitHub App de Keystatic** (une seule fois) :
+   - en local, lancer `PUBLIC_KEYSTATIC_STORAGE=github npm run dev` et ouvrir `/keystatic` ;
+   - suivre l'assistant, qui crée l'app GitHub et écrit les clés dans `.env` ;
+   - dans les réglages de l'app sur GitHub, ajouter l'URL de rappel du site en ligne : `https://<domaine>/api/keystatic/github/oauth/callback` ;
+   - recopier les 4 variables du `.env` (`KEYSTATIC_GITHUB_CLIENT_ID`, `KEYSTATIC_GITHUB_CLIENT_SECRET`, `KEYSTATIC_SECRET`, `PUBLIC_KEYSTATIC_GITHUB_APP_SLUG`) dans Netlify → Site configuration → Environment variables, puis redéployer.
+3. **Donner l'accès au client** : il crée un compte GitHub gratuit, tu l'ajoutes en collaborateur du dépôt (Settings → Collaborators, rôle « Write »), il installe l'app Keystatic sur le dépôt quand on le lui propose, puis se connecte sur `https://<domaine>/keystatic`.
+
+**Alternative sans compte GitHub pour le client** : Keystatic Cloud (connexion par email). Créer un projet sur keystatic.cloud, puis dans Netlify mettre `PUBLIC_KEYSTATIC_STORAGE=cloud` et `PUBLIC_KEYSTATIC_CLOUD_PROJECT=<equipe>/<projet>`, et inviter le client par email depuis keystatic.cloud. Vérifier les conditions et la tarification en vigueur.
+
+Les variables à renseigner sont listées dans `.env.example`.

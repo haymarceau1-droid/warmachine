@@ -7,7 +7,9 @@ import Equipe from '../components/Equipe.astro';
 import Planning from '../components/Planning.astro';
 import Avis from '../components/Avis.astro';
 import Icon from '../components/Icon.astro';
-import { ROUTES, SALLES, COURS, ARTICLES } from '../data/site';
+import { ROUTES, SALLES, COURS } from '../data/site';
+import { getArticles, cover } from '../lib/articles';
+const derniers = (await getArticles()).slice(0, 3);
 const salles = [SALLES.wm1, SALLES.wm2];
 ---
 <Base title="WM Athletics · Hyrox & cross-training à Nantes">
@@ -101,11 +103,11 @@ const salles = [SALLES.wm1, SALLES.wm2];
     <div class="container">
       <SectionHead eyebrow="Blog & actus" title="Conseils de coachs." />
       <div class="grid grid-3">
-        {ARTICLES.slice(0, 3).map((a) => (
-          <a class="post" href={`/${a.slug}/`}>
-            <div class="post__img photo" style={`background-image:url('${a.image}')`}></div>
-            <p class="eyebrow">{a.cat}</p>
-            <h3 class="display post__title">{a.titre}</h3>
+        {derniers.map((a) => (
+          <a class="post" href={`/${a.id}/`}>
+            <div class="post__img photo" style={`background-image:url('${cover(a)}')`}></div>
+            <p class="eyebrow">{a.data.categorie}</p>
+            <h3 class="display post__title">{a.data.titre}</h3>
             <span class="post__more"><Icon name="lecture" />Lire l'article</span>
           </a>
         ))}

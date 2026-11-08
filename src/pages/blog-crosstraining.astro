@@ -3,9 +3,11 @@ import Base from '../layouts/Base.astro';
 import PageHero from '../components/PageHero.astro';
 import Button from '../components/Button.astro';
 import Icon from '../components/Icon.astro';
-import { ARTICLES } from '../data/site';
-const [une, ...rest] = [ARTICLES[0], ...ARTICLES.slice(1)];
-const cats = ['Tous', ...new Set(ARTICLES.map((a) => a.cat))];
+import { getArticles, pickUne, cover, formatDate } from '../lib/articles';
+const list = await getArticles();
+const une = pickUne(list);
+const rest = list.filter((a) => a !== une);
+const cats = ['Tous', ...new Set(list.map((a) => a.data.categorie))];
 ---
 <Base title="Blog & conseils de coachs" description="Entraînement, mobilité, nutrition : les conseils de l’équipe WM Athletics pour progresser.">
   <PageHero crumb="Accueil / Blog" l1="Blog" l2="& conseils de coachs." image="/images/barre.jpg" intro="Entraînement, mobilité, nutrition : les conseils de l’équipe WM pour progresser dans et en dehors de la salle." />
@@ -14,23 +16,25 @@ const cats = ['Tous', ...new Set(ARTICLES.map((a) => a.cat))];
   </div>
   <section class="section section--light">
     <div class="container">
-      <a class="une" href={`/${une.slug}/`} data-cat={une.cat}>
-        <div class="photo une__img" style={`background-image:url('${une.image}')`}></div>
+      {une && (
+      <a class="une" href={`/${une.id}/`} data-cat={une.data.categorie}>
+        <div class="photo une__img" style={`background-image:url('${cover(une)}')`}></div>
         <div class="stack une__body">
-          <p class="eyebrow">À la une · {une.cat}</p>
-          <h2 class="display une__title">{une.titre}</h2>
-          <p class="muted">{une.extrait}</p>
-          {une.auteur && <p class="small" style="font-weight:600">Par {une.auteur}</p>}
+          <p class="eyebrow">À la une · {une.data.categorie}</p>
+          <h2 class="display une__title">{une.data.titre}</h2>
+          <p class="muted">{une.data.extrait}</p>
+          <p class="small" style="font-weight:600">{une.data.auteur && `Par ${une.data.auteur} · `}{formatDate(une.data.date)}</p>
           <span class="btn btn--primary" style="align-self:flex-start"><Icon name="lecture" /><span>Lire l'article</span></span>
         </div>
       </a>
+      )}
       <div class="grid grid-3 posts">
         {rest.map((a) => (
-          <a class="post" href={`/${a.slug}/`} data-cat={a.cat}>
-            <div class="photo post__img" style={`background-image:url('${a.image}')`}></div>
-            <p class="eyebrow">{a.cat}</p>
-            <h3 class="display post__title">{a.titre}</h3>
-            <p class="small muted">{a.extrait}</p>
+          <a class="post" href={`/${a.id}/`} data-cat={a.data.categorie}>
+            <div class="photo post__img" style={`background-image:url('${cover(a)}')`}></div>
+            <p class="eyebrow">{a.data.categorie}</p>
+            <h3 class="display post__title">{a.data.titre}</h3>
+            <p class="small muted">{a.data.extrait}</p>
             <span class="post__more"><Icon name="lecture" />Lire l'article</span>
           </a>
         ))}

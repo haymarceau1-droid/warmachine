@@ -1,0 +1,8 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+  # Admin du blog : stockage GitHub (voir README)
+  PUBLIC_KEYSTATIC_STORAGE = "github"

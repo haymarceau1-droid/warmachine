@@ -203,19 +203,7 @@ export const PLANNING: Record<SalleId, Row[]> = {
 };
 
 // ---------- Blog ----------
-export type Article = { slug: string; cat: string; titre: string; extrait: string; image: string; auteur?: string; date?: string };
-
-export const ARTICLES: Article[] = [
-  { slug: 'quelques-astuces-pour-gagner-en-mobilite', cat: 'Mobilité', titre: 'Gagner en mobilité avec des exercices simples', extrait: 'Des habitudes faciles pour compenser les longues heures assis et bien démarrer le cross-training.', image: '/images/barre.jpg', auteur: 'Florian Thin', date: '12 mai 2022' },
-  { slug: 'les-cles-de-coaching', cat: 'Entraînement', titre: 'Les clés du coaching', extrait: 'Comment un coach corrige, sécurise et fait progresser tout un groupe en une heure.', image: '/images/handstand.jpg' },
-  { slug: '5-etapes-pour-reprendre-son-physique-en-main', cat: 'Entraînement', titre: '5 étapes pour reprendre son physique en main', extrait: 'Une méthode en cinq temps pour se remettre en forme durablement.', image: '/images/groupe.jpg' },
-  { slug: 'zone-rouge-contre-productif', cat: 'Entraînement', titre: 'Toujours dans le rouge ? Contre-productif.', extrait: 'Pourquoi s’épuiser à chaque séance freine ta progression.', image: '/images/wod.jpg' },
-  { slug: 'comment-perdre-du-poids', cat: 'Perte de poids', titre: 'Comment perdre du poids ?', extrait: 'Les mécanismes de prise de masse grasse, expliqués simplement.', image: '/images/rig.jpg' },
-  { slug: 'astuces-efficaces-perdre-du-poids', cat: 'Perte de poids', titre: 'Des astuces efficaces pour perdre du poids', extrait: 'Ce que ton corps compense vraiment quand tu ajustes tes apports.', image: '/images/pano.jpg' },
-  { slug: 'pourquoi-avons-nous-de-la-cellulite', cat: 'Nutrition', titre: 'Pourquoi avons-nous de la cellulite ?', extrait: 'D’où elle vient et comment la réduire.', image: '/images/bois.jpg' },
-  { slug: 'meilleur-exercice-abdos', cat: 'Entraînement', titre: 'Quel est le meilleur exercice pour les abdos ?', extrait: 'Pourquoi les crunchs ne suffisent pas à faire apparaître tes abdos.', image: '/images/exterieur.jpg' },
-  { slug: 'technique-simple-perdre-du-poids', cat: 'Perte de poids', titre: 'Une technique simple pour perdre du poids', extrait: 'Une astuce visuelle pour cibler les poignées d’amour.', image: '/images/barre.jpg' },
-];
+// Les articles sont dans src/content/articles/ (édités depuis l'admin /keystatic).
 
 // ---------- FAQ ----------
 // La FAQ actuelle n'a pas pu être lue : questions rédigées à partir des infos vérifiées du site.
