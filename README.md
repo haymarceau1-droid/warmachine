@@ -58,19 +58,19 @@ Chaque article est un fichier dans `src/content/articles/` ; les images vont dan
 
 `npm run dev`, puis ouvrir http://localhost:4321/keystatic. Les articles sont écrits directement dans le dossier du projet.
 
-### En ligne (Netlify)
+### En ligne (Vercel)
 
-Le site est configuré pour Netlify (`netlify.toml`) : les pages restent statiques, seule l'admin tourne côté serveur.
-À chaque publication, Keystatic crée un commit sur GitHub, Netlify reconstruit le site et l'article est en ligne en 1 à 2 minutes.
+Le site est configuré pour Vercel (adaptateur `@astrojs/vercel`) : les pages restent statiques, seule l'admin `/keystatic` tourne en fonction serverless.
+À chaque publication, Keystatic crée un commit sur GitHub, Vercel reconstruit le site et l'article est en ligne en 1 à 2 minutes.
 
-1. **Mettre le site sur Netlify** : « Add new site » → « Import from GitHub » → dépôt `haymarceau1-droid/warmachine`. Les réglages de build sont lus dans `netlify.toml`.
+1. **Projet Vercel** : le dépôt `haymarceau1-droid/warmachine` doit être importé dans Vercel (Astro est détecté automatiquement, rien à régler pour le build).
 2. **Créer la GitHub App de Keystatic** (une seule fois) :
-   - en local, lancer `PUBLIC_KEYSTATIC_STORAGE=github npm run dev` et ouvrir `/keystatic` ;
+   - en local, lancer `PUBLIC_KEYSTATIC_STORAGE=github npm run dev` et ouvrir http://localhost:4321/keystatic ;
    - suivre l'assistant, qui crée l'app GitHub et écrit les clés dans `.env` ;
-   - dans les réglages de l'app sur GitHub, ajouter l'URL de rappel du site en ligne : `https://<domaine>/api/keystatic/github/oauth/callback` ;
-   - recopier les 4 variables du `.env` (`KEYSTATIC_GITHUB_CLIENT_ID`, `KEYSTATIC_GITHUB_CLIENT_SECRET`, `KEYSTATIC_SECRET`, `PUBLIC_KEYSTATIC_GITHUB_APP_SLUG`) dans Netlify → Site configuration → Environment variables, puis redéployer.
+   - dans les réglages de l'app sur GitHub (Settings → Developer settings → GitHub Apps), ajouter l'URL de rappel du site en ligne : `https://<domaine>/api/keystatic/github/oauth/callback` ;
+   - dans Vercel → Settings → Environment Variables, ajouter `PUBLIC_KEYSTATIC_STORAGE=github` et recopier les 4 variables du `.env` (`KEYSTATIC_GITHUB_CLIENT_ID`, `KEYSTATIC_GITHUB_CLIENT_SECRET`, `KEYSTATIC_SECRET`, `PUBLIC_KEYSTATIC_GITHUB_APP_SLUG`), puis redéployer.
 3. **Donner l'accès au client** : il crée un compte GitHub gratuit, tu l'ajoutes en collaborateur du dépôt (Settings → Collaborators, rôle « Write »), il installe l'app Keystatic sur le dépôt quand on le lui propose, puis se connecte sur `https://<domaine>/keystatic`.
 
-**Alternative sans compte GitHub pour le client** : Keystatic Cloud (connexion par email). Créer un projet sur keystatic.cloud, puis dans Netlify mettre `PUBLIC_KEYSTATIC_STORAGE=cloud` et `PUBLIC_KEYSTATIC_CLOUD_PROJECT=<equipe>/<projet>`, et inviter le client par email depuis keystatic.cloud. Vérifier les conditions et la tarification en vigueur.
+**Alternative sans compte GitHub pour le client** : Keystatic Cloud (connexion par email). Créer un projet sur keystatic.cloud, puis dans Vercel mettre `PUBLIC_KEYSTATIC_STORAGE=cloud` et `PUBLIC_KEYSTATIC_CLOUD_PROJECT=<equipe>/<projet>`, redéployer, et inviter le client par email depuis keystatic.cloud. Vérifier les conditions et la tarification en vigueur.
 
 Les variables à renseigner sont listées dans `.env.example`.
