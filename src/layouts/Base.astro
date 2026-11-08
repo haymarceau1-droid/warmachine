@@ -9,6 +9,7 @@ import '../styles/global.css';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import CtaFinal from '../components/CtaFinal.astro';
+import CookieBanner from '../components/CookieBanner.astro';
 
 interface Props { title: string; description?: string; cta?: boolean }
 const { title, description = 'WM Athletics : Hyrox et cross-training à Nantes. Deux salles, Chantenay et Haute-Goulaine, plus de 400 membres et des coachs passionnés. Séance d’essai offerte.', cta = true } = Astro.props;
@@ -39,6 +40,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     </main>
     {cta && <CtaFinal />}
     <Footer />
+    <CookieBanner />
     <script>
       import '../scripts/reveal.ts';
     </script>

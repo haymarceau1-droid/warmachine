@@ -15,7 +15,7 @@ const path = Astro.url.pathname;
     </ul>
     <a href={ROUTES.essai} class="btn btn--primary nav__cta"><Icon name="calendrier" /><span>Essai gratuit</span></a>
     <button class="nav__burger" type="button" aria-expanded="false" aria-controls="menu-mobile" aria-label="Ouvrir le menu">
-      <Icon name="menu" size={22} />
+      <span class="burger" aria-hidden="true"><span></span><span></span></span>
     </button>
   </nav>
   <div class="menu-mobile" id="menu-mobile" hidden>
@@ -28,13 +28,17 @@ const path = Astro.url.pathname;
 </header>
 
 <script>
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && document.body.classList.contains('menu-open')) (document.querySelector('.nav__burger') as HTMLButtonElement)?.click(); });
   const btn = document.querySelector<HTMLButtonElement>('.nav__burger');
   const menu = document.getElementById('menu-mobile');
   btn?.addEventListener('click', () => {
     const open = btn.getAttribute('aria-expanded') === 'true';
     btn.setAttribute('aria-expanded', String(!open));
     btn.setAttribute('aria-label', open ? 'Ouvrir le menu' : 'Fermer le menu');
-    if (menu) menu.hidden = open;
+    if (menu) {
+      if (open) { menu.classList.remove('is-open'); setTimeout(() => (menu.hidden = true), 300); }
+      else { menu.hidden = false; requestAnimationFrame(() => menu.classList.add('is-open')); }
+    }
     document.body.classList.toggle('menu-open', !open);
   });
 </script>
@@ -60,7 +64,33 @@ const path = Astro.url.pathname;
   }
   .nav__pill a:hover, .nav__pill a[aria-current='page'] { background: rgba(255, 255, 255, .1); }
   .nav__cta { padding: 13px 22px; }
-  .nav__burger { display: none; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.2); border-radius: 999px; width: 46px; height: 46px; align-items: center; justify-content: center; cursor: pointer; }
+  .nav__burger {
+    display: none; width: 50px; height: 50px; align-items: center; justify-content: center; cursor: pointer;
+    border-radius: 999px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18);
+    transition: background-color .25s, border-color .25s;
+  }
+  .nav__burger:hover { background: rgba(255,255,255,.14); }
+  .nav__burger[aria-expanded='true'] { background: var(--red); border-color: var(--red); }
+  .burger { position: relative; width: 20px; height: 10px; }
+  .burger span {
+    position: absolute; left: 0; height: 2px; border-radius: 2px; background: var(--bone);
+    transition: transform .45s cubic-bezier(.7, 0, .2, 1), width .3s, top .3s .15s, bottom .3s .15s;
+  }
+  .burger span:first-child { top: 0; width: 20px; }
+  .burger span:last-child { bottom: 0; width: 12px; right: 0; left: auto; }
+  .nav__burger:hover .burger span:last-child { width: 20px; }
+  .nav__burger[aria-expanded='true'] .burger span { transition: top .25s, bottom .25s, width .25s, transform .45s .15s cubic-bezier(.7, 0, .2, 1); width: 20px; }
+  .nav__burger[aria-expanded='true'] .burger span:first-child { top: 4px; transform: rotate(45deg); }
+  .nav__burger[aria-expanded='true'] .burger span:last-child { bottom: 4px; transform: rotate(-45deg); }
+  .menu-mobile { opacity: 0; transform: translateY(-8px) scale(.98); transform-origin: top right; transition: opacity .3s ease, transform .4s cubic-bezier(.16, 1, .3, 1); }
+  .menu-mobile.is-open { opacity: 1; transform: none; }
+  .menu-mobile li { opacity: 0; transform: translateY(10px); transition: opacity .4s ease, transform .5s cubic-bezier(.16, 1, .3, 1); }
+  .menu-mobile.is-open li { opacity: 1; transform: none; }
+  .menu-mobile.is-open li:nth-child(2) { transition-delay: .04s; } .menu-mobile.is-open li:nth-child(3) { transition-delay: .08s; }
+  .menu-mobile.is-open li:nth-child(4) { transition-delay: .12s; } .menu-mobile.is-open li:nth-child(5) { transition-delay: .16s; }
+  .menu-mobile.is-open li:nth-child(6) { transition-delay: .2s; }
+  :global(body.menu-open) { overflow: hidden; }
+  @media (prefers-reduced-motion: reduce) { .menu-mobile, .menu-mobile li, .burger span { transition: none !important; } }
   .menu-mobile {
     margin-top: 10px; padding: 24px; border-radius: 28px;
     background: rgba(13, 26, 45, .92); border: 1px solid rgba(255, 255, 255, .14);

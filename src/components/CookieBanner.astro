@@ -1,0 +1,157 @@
+---
+// Bannière de consentement cookies (conforme aux recommandations CNIL :
+// « Refuser » aussi accessible que « Accepter », choix mémorisé 6 mois, modifiable à tout moment).
+import Icon from './Icon.astro';
+import { ROUTES } from '../data/site';
+
+const CATS = [
+  { id: 'fonctionnels', titre: 'Fonctionnels', desc: 'Indispensables au fonctionnement du site (navigation, mémorisation de tes choix).', locked: true },
+  { id: 'preferences', titre: 'Préférences', desc: 'Retiennent tes réglages, comme la salle que tu consultes le plus.' },
+  { id: 'statistiques', titre: 'Statistiques', desc: 'Mesure d’audience anonyme pour améliorer le site.' },
+  { id: 'marketing', titre: 'Marketing', desc: 'Contenus et publicités personnalisés sur les réseaux sociaux.' },
+];
+---
+<div class="cookie" id="cookie" role="dialog" aria-modal="false" aria-labelledby="cookie-title" aria-describedby="cookie-desc" hidden>
+  <div class="cookie__card">
+    <div class="cookie__head">
+      <span class="cookie__icon" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.5A9 9 0 1 1 11.5 3a3 3 0 0 0 3.5 3.5 3 3 0 0 0 3.5 3.5 3 3 0 0 0 2.5 2.5z"/><path d="M8.5 9.5h.01M15.5 15h.01M10 15.5h.01M12 12h.01"/></svg>
+      </span>
+      <div>
+        <p class="display cookie__title" id="cookie-title">On parle cookies&nbsp;?</p>
+        <p class="cookie__desc" id="cookie-desc">
+          On utilise des cookies pour faire tourner le site et, avec ton accord, mesurer l’audience et personnaliser les contenus.{' '}
+          <a href={ROUTES.cookies}>Politique cookies</a> · <a href={ROUTES.confidentialite}>Confidentialité</a>
+        </p>
+      </div>
+    </div>
+
+    <form class="cookie__prefs" id="cookie-prefs" hidden>
+      {CATS.map((c) => (
+        <label class="pref">
+          <span class="pref__txt"><strong>{c.titre}</strong><span>{c.desc}</span></span>
+          <span class="switch">
+            <input type="checkbox" name={c.id} checked={c.locked} disabled={c.locked} />
+            <span class="switch__ui" aria-hidden="true"></span>
+          </span>
+          {c.locked && <span class="pref__always">Toujours actifs</span>}
+        </label>
+      ))}
+    </form>
+
+    <div class="cookie__actions">
+      <button type="button" class="btn btn--glass" data-cookie="refuse">Tout refuser</button>
+      <button type="button" class="btn btn--glass" data-cookie="custom" aria-expanded="false" aria-controls="cookie-prefs">Personnaliser</button>
+      <button type="button" class="btn btn--glass cookie__save" data-cookie="save" hidden><Icon name="valide" /><span>Enregistrer</span></button>
+      <button type="button" class="btn btn--primary" data-cookie="accept"><Icon name="valide" /><span>Tout accepter</span></button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const KEY = 'wm-consent';
+  const MAX_AGE = 1000 * 60 * 60 * 24 * 182; // ~6 mois
+  type Consent = { date: number; fonctionnels: true; preferences: boolean; statistiques: boolean; marketing: boolean };
+
+  const root = document.getElementById('cookie')!;
+  const prefs = document.getElementById('cookie-prefs') as HTMLFormElement;
+  const btnCustom = root.querySelector<HTMLButtonElement>('[data-cookie="custom"]')!;
+  const btnSave = root.querySelector<HTMLButtonElement>('[data-cookie="save"]')!;
+
+  const read = (): Consent | null => {
+    try {
+      const c = JSON.parse(localStorage.getItem(KEY) || 'null');
+      return c && Date.now() - c.date < MAX_AGE ? c : null;
+    } catch { return null; }
+  };
+  const write = (c: Omit<Consent, 'date' | 'fonctionnels'>) => {
+    const full = { ...c, fonctionnels: true, date: Date.now() };
+    try { localStorage.setItem(KEY, JSON.stringify(full)); } catch {}
+    window.dispatchEvent(new CustomEvent('wm:consent', { detail: full }));
+    close();
+  };
+  const open = (withPrefs = false) => {
+    const c = read();
+    if (c) (['preferences', 'statistiques', 'marketing'] as const).forEach((k) => { (prefs.elements.namedItem(k) as HTMLInputElement).checked = c[k]; });
+    togglePrefs(withPrefs);
+    root.hidden = false;
+    requestAnimationFrame(() => root.classList.add('is-open'));
+  };
+  const close = () => {
+    root.classList.remove('is-open');
+    setTimeout(() => (root.hidden = true), 350);
+  };
+  const togglePrefs = (show: boolean) => {
+    prefs.hidden = !show;
+    btnSave.hidden = !show;
+    btnCustom.hidden = show;
+    btnCustom.setAttribute('aria-expanded', String(show));
+  };
+
+  root.addEventListener('click', (e) => {
+    const a = (e.target as HTMLElement).closest<HTMLElement>('[data-cookie]')?.dataset.cookie;
+    if (a === 'accept') write({ preferences: true, statistiques: true, marketing: true });
+    if (a === 'refuse') write({ preferences: false, statistiques: false, marketing: false });
+    if (a === 'custom') togglePrefs(true);
+    if (a === 'save') {
+      const v = (k: string) => (prefs.elements.namedItem(k) as HTMLInputElement).checked;
+      write({ preferences: v('preferences'), statistiques: v('statistiques'), marketing: v('marketing') });
+    }
+  });
+
+  // Lien « Gérer les cookies » (footer, page cookies)
+  document.querySelectorAll('[data-open-cookies]').forEach((el) =>
+    el.addEventListener('click', (e) => { e.preventDefault(); open(true); }),
+  );
+
+  if (!read()) setTimeout(() => open(false), 600);
+</script>
+
+<style>
+  .cookie {
+    position: fixed; z-index: 60; left: 24px; bottom: 24px; width: min(480px, calc(100% - 48px));
+    opacity: 0; transform: translateY(24px); transition: opacity .35s ease, transform .45s cubic-bezier(.16, 1, .3, 1);
+  }
+  .cookie.is-open { opacity: 1; transform: none; }
+  .cookie__card {
+    display: flex; flex-direction: column; gap: 20px; padding: 24px;
+    border-radius: 28px; color: var(--bone);
+    background: rgba(13, 26, 45, .82); border: 1px solid rgba(255, 255, 255, .14);
+    -webkit-backdrop-filter: blur(28px) saturate(1.2); backdrop-filter: blur(28px) saturate(1.2);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .35);
+  }
+  .cookie__head { display: flex; gap: 16px; align-items: flex-start; }
+  .cookie__icon { flex: none; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .14); }
+  .cookie__title { font-size: 30px; line-height: 1; margin-bottom: 8px; }
+  .cookie__desc { font-size: 14px; line-height: 1.55; color: var(--slate); }
+  .cookie__desc a { color: var(--bone); text-decoration: underline; text-underline-offset: 3px; }
+  .cookie__prefs { display: flex; flex-direction: column; border-top: 1px solid rgba(255, 255, 255, .1); }
+  .pref { position: relative; display: flex; justify-content: space-between; align-items: center; gap: 16px; padding-block: 14px; border-bottom: 1px solid rgba(255, 255, 255, .1); cursor: pointer; }
+  .pref__txt { display: flex; flex-direction: column; gap: 2px; font-size: 13px; color: var(--slate); line-height: 1.45; }
+  .pref__txt strong { font-size: 15px; color: var(--bone); }
+  .pref__always { position: absolute; right: 60px; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--slate); }
+  .pref:has(.pref__always) { padding-right: 0; }
+  .pref:has(.pref__always) .pref__txt { padding-right: 110px; }
+  .switch { position: relative; flex: none; width: 46px; height: 26px; }
+  .switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+  .switch__ui { position: absolute; inset: 0; border-radius: 99px; background: rgba(255, 255, 255, .14); transition: background-color .2s; }
+  .switch__ui::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--bone); transition: transform .25s cubic-bezier(.16, 1, .3, 1); }
+  .switch input:checked + .switch__ui { background: var(--bone); }
+  .switch input:checked + .switch__ui::after { background: var(--navy); }
+  .switch input:checked + .switch__ui::after { transform: translateX(20px); }
+  .switch input:disabled + .switch__ui { opacity: .55; }
+  .switch input:focus-visible + .switch__ui { outline: 2px solid var(--bone); outline-offset: 2px; }
+  .cookie__actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .cookie__actions .btn { padding: 13px 16px; font-size: 16px; }
+  .cookie__actions [data-cookie='accept'] { grid-column: 1 / -1; }
+  @media (min-width: 600px) {
+    .cookie__actions { grid-template-columns: auto auto 1fr; }
+    .cookie__actions [data-cookie='accept'] { grid-column: auto; }
+  }
+  @media (max-width: 600px) {
+    .cookie { left: 12px; bottom: 12px; width: calc(100% - 24px); }
+    .cookie__card { padding: 20px; border-radius: 24px; }
+    .cookie__title { font-size: 26px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .cookie { transition: none; } }
+</style>
