@@ -1,0 +1,70 @@
+---
+import Base from '../layouts/Base.astro';
+import PageHero from './PageHero.astro';
+import SectionHead from './SectionHead.astro';
+import Button from './Button.astro';
+import Planning from './Planning.astro';
+import Equipe from './Equipe.astro';
+import Venir from './Venir.astro';
+import { SALLES, ROUTES, COACHS, type SalleId } from '../data/site';
+
+interface Props { salle: SalleId }
+const { salle } = Astro.props;
+const s = SALLES[salle];
+const nb = COACHS.filter((c) => c.salles.includes(salle)).length;
+const essai = salle === 'wm1' ? ROUTES.essai : ROUTES.essaiWm2;
+const dropin = salle === 'wm1' ? ROUTES.dropin : ROUTES.dropinWm2;
+const notes = salle === 'wm1'
+  ? ['* Selon disponibilité du coach', 'Planning valable du 2 sept. 2025 au 29 juin 2026', '+50 h de cours par semaine']
+  : ['* Selon disponibilité du coach', '** Family WOD trimestriel', 'Planning valable du 2 sept. 2025 au 29 juin 2026'];
+---
+<Base title={`WM ${s.nom} · Cross-training & Hyrox`} description={s.intro}>
+  <PageHero crumb={`Accueil / Salles / WM ${s.nom}`} l1="WM Athletics" l2={`${s.nom}.`} image={s.hero} intro={s.intro}>
+    <Button href={essai}>Séance d’essai offerte</Button>
+    <Button href={dropin} variant="glass" icon="ticket">Drop-in · 20 €</Button>
+  </PageHero>
+
+  <nav class="anchors" aria-label="Sur cette page">
+    <div class="container anchors__inner">
+      <a href="#salle">[ La salle ]</a><a href="#planning">[ Le planning ]</a><a href="#equipe">[ L’équipe ]</a><a href="#venir">[ Venir ]</a>
+    </div>
+  </nav>
+
+  <section class="section section--light" id="salle">
+    <div class="container">
+      <SectionHead eyebrow="La salle" title={`${s.surface} de bonne humeur.`} side={s.salleSide} />
+      <div class="surfaces" style={`--n:${s.surfaces.length}`}>
+        {s.surfaces.map(([n, l], i) => (
+          <div class:list={['surface', i === 0 && 'surface--hl']}><p class="display surface__n">{n}</p><p class="surface__l">{l}</p></div>
+        ))}
+      </div>
+      <div class="grid grid-3 gallery">
+        {s.galerie.map((g) => <div class="photo gallery__img" style={`background-image:url('${g}')`}></div>)}
+      </div>
+    </div>
+  </section>
+
+  <Planning salles={[salle]} notes={notes}>
+    <div class="btn-row">
+      <Button href={essai}>Séance d’essai offerte</Button>
+      <Button href={dropin} variant="glass" icon="ticket">Réserver un drop-in</Button>
+    </div>
+  </Planning>
+
+  <Equipe salle={salle} side={`${nb === 13 ? 'Treize' : 'Onze'} coachs et membres du staff diplômés et passionnés, qui connaissent chaque membre par son prénom et suivent ta progression.`} />
+  <Venir salle={salle} />
+</Base>
+
+<style>
+  .anchors { background: var(--navy-800); }
+  .anchors__inner { display: flex; flex-wrap: wrap; gap: 12px 40px; padding-block: 22px; font-size: 14px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+  .anchors a:hover { color: var(--red); }
+  .surfaces { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; }
+  .surface { background: var(--light); padding: 28px; display: flex; flex-direction: column; gap: 8px; }
+  .surface--hl { background: var(--red); color: var(--bone); }
+  .surface__n { font-size: clamp(40px, 3.6vw, 56px); line-height: .95; text-transform: none; white-space: nowrap; }
+  .surface__l { font-size: 15px; font-weight: 500; color: var(--muted); }
+  .surface--hl .surface__l { color: var(--bone); }
+  .gallery__img { aspect-ratio: 4 / 3; }
+  @media (max-width: 900px) { .surfaces { grid-template-columns: repeat(2, 1fr); } }
+</style>

@@ -1,0 +1,98 @@
+---
+import Icon from './Icon.astro';
+import Button from './Button.astro';
+import { CONTACT, ROUTES, SALLES, HORAIRES_COURTS } from '../data/site';
+const salles = [SALLES.wm1, SALLES.wm2];
+---
+<footer class="footer">
+  <div class="container footer__top">
+    <div class="footer__pitch">
+      <p class="eyebrow">Plus qu’une salle</p>
+      <h2 class="display footer__title">Une vraie <span class="red">famille sportive.</span></h2>
+      <p class="muted">Accessibilité, convivialité, performance et communauté.<br />Viens tester, ta première séance est offerte.</p>
+      <div class="btn-row">
+        <Button href={ROUTES.essai} icon="calendrier">Séance d’essai offerte</Button>
+        <Button href={ROUTES.contact} variant="glass" icon="message">Nous contacter</Button>
+      </div>
+    </div>
+    <div class="footer__salles">
+      {salles.map((s) => (
+        <a class="salle-card" href={s.href}>
+          <span class="tag">{s.code}</span>
+          <span class="display salle-card__name">{s.nom}</span>
+          <span class="salle-card__addr">{s.adresse}<br />{s.ville}</span>
+          <span class="salle-card__link"><Icon name="repere" class="red" />Itinéraire</span>
+        </a>
+      ))}
+    </div>
+  </div>
+
+  <div class="footer__links">
+    <div class="container footer__grid">
+      <div class="col col--contact">
+        <p class="eyebrow">Une question ?</p>
+        <a class="row" href={CONTACT.phoneHref}><Icon name="telephone" class="red" />{CONTACT.phone}</a>
+        <a class="row" href={`mailto:${CONTACT.email}`}><Icon name="mail" class="red" />{CONTACT.email}</a>
+        <p class="muted small">{CONTACT.phoneNote}</p>
+      </div>
+      <div class="col">
+        <p class="eyebrow">Le club</p>
+        <a href={ROUTES.wm1}>Chantenay</a><a href={ROUTES.wm2}>Haute-Goulaine</a><a href={ROUTES.tarifs}>Tarifs & planning</a>
+        <a href={`${ROUTES.wm1}#equipe`}>Coachs</a><a href={ROUTES.blog}>Blog</a><a href={ROUTES.faq}>FAQ</a>
+      </div>
+      <div class="col">
+        <p class="eyebrow">Pro</p>
+        <a href={ROUTES.teamBuilding}>Team building</a><a href={ROUTES.recrutement}>Recrutement</a><a href={ROUTES.contact}>Contact</a>
+      </div>
+      <div class="col">
+        <p class="eyebrow">Horaires</p>
+        {HORAIRES_COURTS.map(([d, h]) => <p class="hours"><span class="muted">{d}</span><span>{h}</span></p>)}
+      </div>
+      <div class="col">
+        <p class="eyebrow">Suivre</p>
+        <a class="social" href={CONTACT.instagram} target="_blank" rel="noopener"><Icon name="instagram" />Instagram</a>
+        <a class="social" href={CONTACT.facebook} target="_blank" rel="noopener"><Icon name="facebook" />Facebook</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer__wordmark" aria-hidden="true"><span class="display">WM Athletics</span></div>
+
+  <div class="container footer__bottom">
+    <p>© {new Date().getFullYear()} WM Athletics · Hyrox & cross-training à Nantes</p>
+    <p class="legal"><a href={ROUTES.mentions}>Mentions légales</a> · <a href={ROUTES.confidentialite}>Confidentialité</a> · <a href={ROUTES.cookies}>Cookies</a></p>
+    <p>Design : Oswald Solutions</p>
+  </div>
+</footer>
+
+<style>
+  .footer { background: var(--navy); border-top: 1px solid var(--line); overflow: hidden; }
+  .footer__top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 56px 80px; padding-block: clamp(72px, 9vw, 120px) 96px; }
+  .footer__pitch { display: flex; flex-direction: column; gap: 24px; flex: 1 1 480px; max-width: 640px; }
+  .footer__title { font-size: clamp(52px, 6vw, 76px); }
+  .footer__salles { display: flex; flex-wrap: wrap; gap: 16px; }
+  .salle-card {
+    display: flex; flex-direction: column; gap: 14px; width: 296px; max-width: 100%; padding: 28px;
+    background: var(--navy-800); border: 1px solid rgba(255, 255, 255, .08); border-radius: var(--radius);
+    transition: border-color .2s, transform .2s var(--ease);
+  }
+  .salle-card:hover { border-color: rgba(255, 255, 255, .25); transform: translateY(-2px); }
+  .tag { align-self: flex-start; background: var(--red); color: var(--white); border-radius: 999px; padding: 4px 12px; font-family: var(--font-display); font-weight: 900; font-size: 16px; letter-spacing: .04em; }
+  .salle-card__name { font-size: 34px; }
+  .salle-card__addr { color: var(--slate); font-size: 15px; line-height: 1.55; }
+  .salle-card__link { display: flex; align-items: center; gap: 10px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 14px; font-weight: 600; }
+  .footer__links { border-block: 1px solid var(--line); }
+  .footer__grid { display: flex; flex-wrap: wrap; gap: 40px; padding-block: 56px; }
+  .col { display: flex; flex-direction: column; gap: 12px; flex: 1 1 150px; font-size: 15px; font-weight: 500; }
+  .col a:hover { color: var(--white); text-decoration: underline; text-underline-offset: 3px; }
+  .col--contact { flex: 1 1 300px; max-width: 380px; }
+  .row { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 16px; }
+  .hours { display: flex; justify-content: space-between; gap: 16px; font-size: 14px; min-width: 190px; }
+  .hours span:last-child { font-weight: 600; }
+  .social { display: inline-flex; align-self: flex-start; align-items: center; gap: 10px; padding: 10px 18px 10px 14px; border-radius: 999px; background: var(--navy-800); border: 1px solid rgba(255, 255, 255, .08); font-size: 14px; font-weight: 600; }
+  .social:hover { text-decoration: none !important; border-color: rgba(255,255,255,.25); }
+  .footer__wordmark { display: flex; justify-content: center; height: calc(clamp(60px, 17vw, 247px) * .62); overflow: hidden; }
+  .footer__wordmark span { font-size: clamp(60px, 17vw, 247px); color: var(--navy-700); white-space: nowrap; line-height: 1; padding-top: .02em; }
+  .footer__bottom { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px 24px; padding-block: 22px 26px; border-top: 1px solid var(--line); font-size: 13px; font-weight: 500; color: var(--slate); }
+  .legal a:hover { color: var(--bone); }
+</style>

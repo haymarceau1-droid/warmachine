@@ -1,0 +1,40 @@
+---
+import SectionHead from './SectionHead.astro';
+import Button from './Button.astro';
+import { HORAIRES, SALLES, type SalleId } from '../data/site';
+interface Props { salle: SalleId }
+const s = SALLES[Astro.props.salle];
+---
+<section class="section" id="venir">
+  <div class="container">
+    <SectionHead eyebrow={`Venir à WM ${s.nom}`} title="Nous trouver." />
+    <div class="venir">
+      <div class="stack venir__info">
+        <p class="display venir__addr">{s.adresse}<br />{s.ville}</p>
+        <p class="muted">{s.acces}</p>
+        <div class="hours">
+          {HORAIRES.map(([d, h]) => <div class="hours__row"><span class="display">{d}</span><span>{h}</span></div>)}
+        </div>
+        <div><Button href={s.maps} variant="glass" icon="repere" external>Itinéraire Google Maps</Button></div>
+      </div>
+      <iframe
+        class="venir__map"
+        title={`Plan d’accès WM ${s.nom}`}
+        loading="lazy"
+        referrerpolicy="no-referrer-when-downgrade"
+        src={`https://www.google.com/maps?q=${encodeURIComponent(`${s.adresse}, ${s.ville}`)}&output=embed`}
+      ></iframe>
+    </div>
+  </div>
+</section>
+
+<style>
+  .venir { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; }
+  .venir__info { gap: 28px; }
+  .venir__addr { font-size: clamp(36px, 3.5vw, 51px); line-height: 1; }
+  .hours__row { display: flex; justify-content: space-between; padding-block: 14px; border-bottom: 1px solid var(--line); }
+  .hours__row .display { font-size: 25px; }
+  .hours__row span:last-child { font-weight: 600; }
+  .venir__map { width: 100%; height: 100%; min-height: 420px; border: 0; border-radius: var(--radius); background: var(--navy-600); filter: grayscale(.6) contrast(1.05); }
+  @media (max-width: 900px) { .venir { grid-template-columns: 1fr; } }
+</style>

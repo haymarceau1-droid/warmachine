@@ -1,0 +1,96 @@
+---
+// Modèle d'article de blog. Les URL reprennent celles du site actuel (à la racine).
+import Base from '../layouts/Base.astro';
+import Icon from '../components/Icon.astro';
+import { ARTICLES } from '../data/site';
+
+export function getStaticPaths() {
+  return ARTICLES.map((a) => ({ params: { slug: a.slug }, props: { a } }));
+}
+const { a } = Astro.props;
+const others = ARTICLES.filter((x) => x.slug !== a.slug).slice(0, 3);
+const full = a.slug === 'quelques-astuces-pour-gagner-en-mobilite';
+const tips = [
+  ['Sous la douche', 'Profite de l’eau chaude pour étirer pectoraux et grands dorsaux.'],
+  ['Au téléphone', 'Assieds-toi en tailleur pour ouvrir les hanches et détendre le bas du dos.'],
+  ['En attendant', 'Un trottoir ou un mur suffit pour étirer mollets et ischios.'],
+  ['Avant la séance', 'Au moins une minute par côté sur les muscles raides ou peu sollicités.'],
+];
+---
+<Base title={a.titre} description={a.extrait}>
+  <header class="ahead">
+    <div class="container ahead__inner">
+      <p class="crumb">[ Accueil / Blog / {a.cat} ]</p>
+      <h1 class="display ahead__title">{a.titre}</h1>
+      {a.auteur && (
+        <div class="ahead__meta"><span class="avatar" aria-hidden="true"></span><strong>Par {a.auteur}</strong>{a.date && <span class="crumb">[ {a.date} ]</span>}</div>
+      )}
+    </div>
+  </header>
+  <div class="photo cover" style={`background-image:url('${a.image}')`}></div>
+
+  <article class="section section--light">
+    <div class="prose">
+      {full ? (
+        <>
+          <p class="intro">On passe nos journées assis, dos arrondi et épaules en avant. Rien d’étonnant à se sentir raide en débutant le cross-training : voici comment regagner de l’amplitude, sans y passer des heures.</p>
+          <h2 class="display">Pourquoi la mobilité compte</h2>
+          <p>Ton coach peut adapter chaque mouvement, mais négliger la mobilité finit par créer de la frustration, voire des blessures. Inutile de viser le grand écart : l’objectif est de disposer d’un peu plus d’amplitude que ce que le mouvement exige, et de faire travailler régulièrement tes articulations dans des positions inhabituelles.</p>
+          <blockquote class="display">Un peu plus d’amplitude que nécessaire : c’est tout ce qu’il te faut.</blockquote>
+          <h2 class="display">Quelques astuces</h2>
+          <ol class="tips">
+            {tips.map(([h, t], i) => <li><span class="display red">0{i + 1}</span><div><h3 class="display">{h}</h3><p>{t}</p></div></li>)}
+          </ol>
+          <h2 class="display">Le bonus</h2>
+          <p>Essaie de cumuler un quart d’heure par semaine en position de squat profond ou suspendu à une barre. Si tu cours ou pratiques un sport collectif, insiste sur les mollets, les ischios et les fessiers.</p>
+        </>
+      ) : (
+        <>
+          <p class="intro">{a.extrait}</p>
+          <p class="note-box">Contenu de l’article à migrer depuis le site actuel.</p>
+        </>
+      )}
+      {a.auteur && (
+        <div class="author"><span class="avatar avatar--lg" aria-hidden="true"></span><div><p class="display" style="font-size:30px">{a.auteur}</p><p class="small muted">Fondateur de WM Athletics</p></div></div>
+      )}
+    </div>
+  </article>
+
+  <section class="section">
+    <div class="container">
+      <p class="eyebrow" style="margin-bottom:32px">À lire aussi</p>
+      <div class="grid grid-3">
+        {others.map((o) => (
+          <a class="post" href={`/${o.slug}/`}>
+            <div class="photo post__img" style={`background-image:url('${o.image}')`}></div>
+            <h3 class="display post__title">{o.titre}</h3>
+            <span class="post__more"><Icon name="lecture" />Lire l'article</span>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .ahead__inner { max-width: 1000px; display: flex; flex-direction: column; gap: 24px; padding-top: clamp(140px, 15vw, 200px); padding-bottom: 64px; }
+  .ahead__title { font-size: clamp(48px, 7vw, 101px); line-height: .95; }
+  .ahead__meta { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; font-size: 15px; }
+  .avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--navy-600); }
+  .avatar--lg { width: 72px; height: 72px; background: #dce1e8; flex: none; }
+  .cover { aspect-ratio: 1440 / 620; max-height: 640px; width: 100%; }
+  .prose { max-width: 760px; margin-inline: auto; padding-inline: 20px; display: flex; flex-direction: column; gap: 28px; font-size: 19px; line-height: 1.65; }
+  .intro { font-size: 23px; font-weight: 500; line-height: 1.55; }
+  .prose h2 { font-size: clamp(40px, 4vw, 55px); line-height: 1; margin-top: 12px; }
+  .prose blockquote { margin: 0; padding: 12px 0 12px 24px; border-left: 4px solid var(--red); font-size: clamp(30px, 3vw, 39px); line-height: 1.1; }
+  .tips { list-style: none; padding: 0; margin: 0; }
+  .tips li { display: flex; gap: 24px; padding-block: 20px; border-top: 1px solid var(--line-light); }
+  .tips .red { font-size: 32px; }
+  .tips h3 { font-size: 28px; margin-bottom: 6px; }
+  .tips p { font-size: 17px; color: var(--muted); }
+  .author { display: flex; align-items: center; gap: 20px; padding: 28px; background: var(--light); }
+  .post { display: flex; flex-direction: column; gap: 14px; }
+  .post__img { aspect-ratio: 16 / 10; }
+  .post__title { font-size: 34px; line-height: 1; }
+  .post__more { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; }
+</style>

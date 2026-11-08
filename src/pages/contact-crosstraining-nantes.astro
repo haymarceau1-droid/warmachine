@@ -1,0 +1,59 @@
+---
+import Base from '../layouts/Base.astro';
+import PageHero from '../components/PageHero.astro';
+import Button from '../components/Button.astro';
+import Icon from '../components/Icon.astro';
+import { CONTACT, SALLES, FORM_ENDPOINT } from '../data/site';
+---
+<Base title="Contact" description="Contacte WM Athletics : téléphone, email, adresses des salles de Chantenay et Haute-Goulaine." cta={false}>
+  <PageHero crumb="Accueil / Contact" l1="Contact." l2="On te répond vite." image="/images/exterieur.jpg" intro="Une question sur les cours, les tarifs ou une séance d’essai ? Écris-nous, l’équipe te répond rapidement et avec le sourire." />
+  <section class="section section--light">
+    <div class="container contact">
+      <form class="form" method="post" action={FORM_ENDPOINT}>
+        <h2 class="display" style="font-size:64px">Écris-nous</h2>
+        <div class="form-row">
+          <div class="field"><label for="nom">Nom</label><input id="nom" name="nom" autocomplete="family-name" required /></div>
+          <div class="field"><label for="prenom">Prénom</label><input id="prenom" name="prenom" autocomplete="given-name" required /></div>
+        </div>
+        <div class="form-row">
+          <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" autocomplete="email" required /></div>
+          <div class="field"><label for="tel">Téléphone</label><input id="tel" name="telephone" type="tel" autocomplete="tel" /></div>
+        </div>
+        <fieldset class="field">
+          <legend>Je suis intéressé·e par</legend>
+          <div class="checks checks--col">
+            <label class="check"><input type="checkbox" name="interet" value="essai-wm1" />Une séance d’essai à WM1 Chantenay</label>
+            <label class="check"><input type="checkbox" name="interet" value="essai-wm2" />Une séance d’essai à WM2 Haute-Goulaine</label>
+            <label class="check"><input type="checkbox" name="interet" value="passage" />Un passage ponctuel sur Nantes</label>
+          </div>
+        </fieldset>
+        <div class="field"><label for="msg">Ta demande</label><textarea id="msg" name="message" placeholder="Dis-nous en plus…"></textarea></div>
+        <div><Button type="submit" icon="envoyer">Envoyer</Button></div>
+      </form>
+      <aside class="infos">
+        <div><p class="eyebrow">Téléphone</p><a class="row" href={CONTACT.phoneHref}><Icon name="telephone" class="red" />{CONTACT.phone}</a><p class="small muted">{CONTACT.phoneNote}</p></div>
+        <div><p class="eyebrow">Email</p><a class="row" href={`mailto:${CONTACT.email}`}><Icon name="mail" class="red" />{CONTACT.email}</a></div>
+        {[SALLES.wm1, SALLES.wm2].map((s) => (
+          <div><p class="eyebrow">{s.code} · {s.nom}</p><a class="row" href={s.maps} target="_blank" rel="noopener"><Icon name="repere" class="red" />{s.adresse}, {s.ville}</a></div>
+        ))}
+        <div><p class="eyebrow">Horaires</p><p class="row"><Icon name="horloge" class="red" />Lun. & mer. 7h–21h · Mar. & jeu. 10h–21h · Ven. 7h–20h · Sam. & dim. 10h–12h</p></div>
+        <div class="socials">
+          <a class="social" href={CONTACT.instagram}><Icon name="instagram" />Instagram</a>
+          <a class="social" href={CONTACT.facebook}><Icon name="facebook" />Facebook</a>
+        </div>
+      </aside>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .contact { display: grid; grid-template-columns: 1fr 440px; gap: 64px; align-items: start; }
+  .infos { display: flex; flex-direction: column; gap: 26px; padding: 40px; background: var(--navy); color: var(--bone); border-radius: var(--radius); }
+  .infos .eyebrow { margin-bottom: 8px; }
+  .row { display: flex; align-items: flex-start; gap: 10px; font-weight: 600; font-size: 17px; line-height: 1.4; }
+  .row :global(svg) { margin-top: 2px; flex: none; }
+  .infos .muted { color: var(--slate); margin-top: 6px; }
+  .socials { display: flex; gap: 10px; flex-wrap: wrap; }
+  .social { display: inline-flex; align-items: center; gap: 10px; padding: 10px 18px 10px 14px; border-radius: 999px; background: var(--navy-800); border: 1px solid var(--line); font-size: 14px; font-weight: 600; }
+  @media (max-width: 960px) { .contact { grid-template-columns: 1fr; } }
+</style>

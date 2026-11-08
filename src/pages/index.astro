@@ -1,0 +1,180 @@
+---
+import Base from '../layouts/Base.astro';
+import Button from '../components/Button.astro';
+import SectionHead from '../components/SectionHead.astro';
+import Tarifs from '../components/Tarifs.astro';
+import Equipe from '../components/Equipe.astro';
+import Planning from '../components/Planning.astro';
+import Avis from '../components/Avis.astro';
+import Icon from '../components/Icon.astro';
+import { ROUTES, SALLES, COURS, ARTICLES } from '../data/site';
+const salles = [SALLES.wm1, SALLES.wm2];
+---
+<Base title="WM Athletics · Hyrox & cross-training à Nantes">
+  <section class="hero">
+    <div class="hero__bg" aria-hidden="true"></div>
+    <a href={ROUTES.essai} class="hero__badge display">1re séance<br />offerte [+]</a>
+    <div class="container hero__inner">
+      <p class="eyebrow">Hyrox & cross-training · Nantes</p>
+      <h1 class="display h-hero">Plus qu'une salle.<br /><span class="red">Une vraie famille.</span></h1>
+      <div class="hero__bottom">
+        <p class="lead hero__lead">Deux salles, plus de 400 membres et des coachs qui adaptent chaque séance à ton niveau. Débutant ou athlète, tu progresses dans la bonne humeur.</p>
+        <div class="btn-row">
+          <Button href={ROUTES.essai}>Essai gratuit · Chantenay</Button>
+          <Button href={ROUTES.essaiWm2} variant="glass">Essai gratuit · Haute-Goulaine</Button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="stats">
+    <div class="container stats__inner">
+      {[['400+', 'membres'], ['2', 'salles à Nantes'], ['13', 'coachs & staff'], ['8', 'formats de cours'], ['7j/7', 'ouvert']].map(([n, l]) => (
+        <p class="stat"><span class="display">{n}</span><span>{l}</span></p>
+      ))}
+    </div>
+  </div>
+
+  <section class="section section--light">
+    <div class="container">
+      <div class="concept">
+        <div class="stack" style="gap:24px">
+          <p class="eyebrow">Le concept WM</p>
+          <h2 class="display h-section">Le meilleur de l'Hyrox et du cross-training.</h2>
+        </div>
+        <div class="stack concept__text">
+          <p class="lead">Haltérophilie, gymnastique et cardio réunis dans des séances encadrées. Notre passion : te faire bouger, progresser et te dépasser dans la bonne humeur.</p>
+          <p class="muted">Débutants, intermédiaires ou simples curieux : chaque coach ajuste la séance à tes objectifs.</p>
+        </div>
+      </div>
+      <div class="grid grid-3 pillars">
+        {[['01', 'Force', 'Haltéro, renforcement, Hyrox Strength.'], ['02', 'Cardio', 'Intervalles, endurance, WOD.'], ['03', 'Mobilité', 'Gymnastique, amplitude, prévention.']].map(([n, t, d]) => (
+          <div class="card"><p class="display red" style="font-size:22px">{n}</p><h3 class="display" style="font-size:64px">{t}</h3><p class="muted">{d}</p></div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <SectionHead eyebrow="Deux salles, un esprit commun" title="Choisis ta salle." side="Même programmation, même équipe, mêmes horaires dans les deux salles nantaises." />
+      <div class="grid grid-2">
+        {salles.map((s) => (
+          <article class="salle">
+            <div class="salle__photo photo" style={`background-image:linear-gradient(180deg,rgba(13,26,45,0) 60%,rgba(13,26,45,.35)),url('${s.photo}')`}><span class="tag-sq display">{s.code}</span></div>
+            <div class="salle__body">
+              <h3 class="display" style="font-size:clamp(44px,4.5vw,64px)">WM {s.nom}</h3>
+              <p style="font-weight:600">{s.adresse}, {s.ville}</p>
+              <p class="muted">{s.acces}</p>
+              <div class="btn-row">
+                <Button href={s.id === 'wm1' ? ROUTES.essai : ROUTES.essaiWm2}>Essai gratuit</Button>
+                <Button href={s.id === 'wm1' ? ROUTES.dropin : ROUTES.dropinWm2} variant="glass" icon="ticket">Drop-in · 20 €</Button>
+              </div>
+              <a class="salle__more" href={s.href}>Découvrir la salle</a>
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--light">
+    <div class="container">
+      <SectionHead eyebrow="Ce que nous proposons" title="8 formats pour progresser." side="Des séances pensées pour tous les niveaux, de la technique pure au cardio intense." />
+      <div class="grid grid-4">
+        {COURS.map(([t, d, tag], i) => (
+          <article class:list={['cours', i === 0 && 'cours--hl']}>
+            <div class="cours__top"><span class="display">{String(i + 1).padStart(2, '0')}</span><span class="cours__tag">{tag}</span></div>
+            <div><h3 class="display cours__title">{t}</h3><p class="cours__desc">{d}</p></div>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <Tarifs />
+  <Equipe side="Treize coachs et membres du staff diplômés et passionnés, qui connaissent chaque membre par son prénom." />
+  <Planning />
+  <Avis />
+
+  <section class="section section--alt">
+    <div class="container">
+      <SectionHead eyebrow="Blog & actus" title="Conseils de coachs." />
+      <div class="grid grid-3">
+        {ARTICLES.slice(0, 3).map((a) => (
+          <a class="post" href={`/${a.slug}/`}>
+            <div class="post__img photo" style={`background-image:url('${a.image}')`}></div>
+            <p class="eyebrow">{a.cat}</p>
+            <h3 class="display post__title">{a.titre}</h3>
+            <span class="post__more"><Icon name="lecture" />Lire l'article</span>
+          </a>
+        ))}
+      </div>
+      <div class="btn-row" style="margin-top:48px"><Button href={ROUTES.blog} variant="glass" icon="lecture">Tous les articles</Button></div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .hero { position: relative; min-height: min(100svh, 980px); display: flex; align-items: flex-end; overflow: hidden; }
+  .hero__bg {
+    position: absolute; inset: 0;
+    background:
+      linear-gradient(90deg, rgba(13,26,45,.94) 0%, rgba(13,26,45,.55) 55%, rgba(13,26,45,.1) 100%),
+      linear-gradient(180deg, rgba(13,26,45,.55) 0%, rgba(13,26,45,0) 35%, rgba(13,26,45,.2) 70%, var(--navy) 100%),
+      url('/images/wod.jpg') center / cover var(--navy-600);
+    filter: saturate(.7) contrast(1.1);
+  }
+  .hero__badge {
+    position: absolute; right: clamp(20px, 4vw, 56px); top: clamp(110px, 12vw, 170px); z-index: 2;
+    width: clamp(120px, 13vw, 190px); aspect-ratio: 1; border-radius: 50%; background: var(--red);
+    display: grid; place-items: center; text-align: center; font-size: clamp(18px, 2vw, 28px); line-height: 1; transform: rotate(-10deg);
+    transition: transform .3s var(--ease);
+  }
+  .hero__badge:hover { transform: rotate(-4deg) scale(1.04); }
+  .hero__inner { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 32px; padding-top: 180px; padding-bottom: clamp(56px, 6vw, 80px); }
+  .hero__bottom { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 28px 40px; }
+  .hero__lead { max-width: 560px; color: var(--white); }
+
+  .stats { background: var(--red); }
+  .stats__inner { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 20px 32px; padding-block: 32px; }
+  .stat { display: flex; align-items: baseline; gap: 12px; }
+  .stat .display { font-size: clamp(48px, 5vw, 74px); line-height: .9; }
+  .stat span:last-child { font-size: 14px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+
+  .concept { display: grid; grid-template-columns: 1.1fr 1fr; gap: 40px 80px; margin-bottom: 56px; }
+  .concept__text { gap: 20px; padding-top: 44px; }
+  .pillars .card { display: flex; flex-direction: column; gap: 14px; }
+
+  .salle { background: var(--navy-700); display: flex; flex-direction: column; }
+  .salle__photo { aspect-ratio: 16 / 10; padding: 28px; }
+  .tag-sq { display: inline-block; background: var(--red); padding: 6px 12px; font-size: 25px; }
+  .salle__body { display: flex; flex-direction: column; gap: 18px; padding: 40px; }
+  .salle__more { font-size: 14px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--red); }
+  .salle__more:hover { text-decoration: underline; }
+
+  .cours { display: flex; flex-direction: column; justify-content: space-between; gap: 32px; min-height: 300px; padding: 28px; background: var(--light); }
+  .cours__top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .cours__top .display { font-size: 22px; color: var(--red); }
+  .cours__tag { font-size: 11px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--muted); border-radius: 99px; padding: 5px 10px; }
+  .cours__title { font-size: 46px; line-height: .95; margin-bottom: 10px; }
+  .cours__desc { font-size: 15px; color: var(--muted); }
+  .cours--hl { background: var(--red); color: var(--bone); }
+  .cours--hl .cours__top .display, .cours--hl .cours__desc { color: var(--bone); }
+  .cours--hl .cours__tag { color: var(--bone); border-color: var(--bone); }
+
+  .post { display: flex; flex-direction: column; gap: 14px; }
+  .post__img { aspect-ratio: 16 / 10; margin-bottom: 6px; transition: opacity .2s; }
+  .post:hover .post__img { opacity: .85; }
+  .post__title { font-size: 36px; line-height: 1; }
+  .post__more { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; }
+
+  @media (max-width: 900px) {
+    .concept { grid-template-columns: 1fr; }
+    .concept__text { padding-top: 0; }
+    .hero__inner { padding-top: 250px; }
+    .hero__badge { top: 96px; right: 20px; width: 112px; font-size: 17px; }
+    .stats__inner { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 16px; }
+    .stat { flex-direction: column; gap: 4px; }
+  }
+</style>

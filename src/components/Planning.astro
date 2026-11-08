@@ -1,0 +1,132 @@
+---
+import Icon from './Icon.astro';
+import { PLANNING, JOURS, SALLES, type SalleId } from '../data/site';
+
+interface Props { salles?: SalleId[]; title?: boolean; notes?: string[] }
+const { salles = ['wm1', 'wm2'], title = true, notes = ['* Selon disponibilité du coach', 'Réservation dans l’app'] } = Astro.props;
+const uid = `pl-${Math.random().toString(36).slice(2, 7)}`;
+const short = ['L', 'M', 'Me', 'J', 'V', 'S', 'D'];
+const LEGEND: [string, string][] = [['W', 'WOD'], ['H', 'Hyrox · Interval · Strength · Endurance'], ['S', 'Spé · Gym · Haltéro · Mobilité'], ['B', 'Bonus training']];
+---
+<section class="section planning-sec" id="planning">
+  <div class="container">
+    {title && (
+      <div class="pl-head">
+        <h2 class="display h-section">Le planning.<br /><span class="pl-head__l2"><Icon name="plus" size={40} class="pl-x" /><span class="red">Ta semaine.</span></span></h2>
+      </div>
+    )}
+
+    {salles.length > 1 && (
+      <div class="pl-tabs" role="tablist" aria-label="Choix de la salle">
+        {salles.map((s, i) => (
+          <button role="tab" type="button" class="pl-tab" aria-selected={i === 0 ? 'true' : 'false'} data-tab={`${uid}-${s}`}>{SALLES[s].code} · {SALLES[s].nom}</button>
+        ))}
+      </div>
+    )}
+
+    <div class="pl-days" aria-label="Choix du jour">
+      {short.map((d, i) => <button type="button" class="pl-day" aria-pressed={i === 0 ? 'true' : 'false'} data-day={i} aria-label={JOURS[i]}>{d}</button>)}
+    </div>
+
+    {salles.map((s, si) => (
+      <div class="pl" id={`${uid}-${s}`} data-day="0" role="tabpanel" hidden={si > 0}>
+        <div class="pl-row pl-row--head">
+          <span></span>
+          {JOURS.map((j) => <span class="pl-dayname">{j}</span>)}
+        </div>
+        {PLANNING[s].map((row) => (
+          <div class="pl-row">
+            <span class="pl-time">{row.heure}</span>
+            {'span' in row ? (
+              <span class="pl-span"><span class="chip chip--B"><span class="pl-span__full">{row.span}</span><span class="pl-span__short">Bonus training*</span></span></span>
+            ) : (
+              row.cells.map((cell, d) => (
+                <span class:list={['pl-cell', !cell && 'pl-empty']} data-d={d}>
+                  {cell ? cell.map(([l, t]) => <span class={`chip chip--${t}`}>{l}</span>) : <span class="pl-dash">—</span>}
+                </span>
+              ))
+            )}
+          </div>
+        ))}
+      </div>
+    ))}
+
+    <div class="pl-legend">
+      {LEGEND.map(([t, l]) => <span class="pl-legend__item"><span class={`chip chip--${t} chip--swatch`}></span>{l}</span>)}
+    </div>
+    <p class="pl-notes">{notes.map((n) => <span>[ {n} ]</span>)}</p>
+    <slot />
+  </div>
+</section>
+
+<script>
+  document.querySelectorAll<HTMLElement>('.planning-sec').forEach((sec) => {
+    const tabs = sec.querySelectorAll<HTMLButtonElement>('.pl-tab');
+    const panels = sec.querySelectorAll<HTMLElement>('.pl');
+    tabs.forEach((t) => t.addEventListener('click', () => {
+      tabs.forEach((x) => x.setAttribute('aria-selected', String(x === t)));
+      panels.forEach((p) => (p.hidden = p.id !== t.dataset.tab));
+    }));
+    const days = sec.querySelectorAll<HTMLButtonElement>('.pl-day');
+    days.forEach((b) => b.addEventListener('click', () => {
+      days.forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+      panels.forEach((p) => (p.dataset.day = b.dataset.day));
+    }));
+  });
+</script>
+
+<style>
+  .planning-sec { background: var(--navy); }
+  .pl-head { margin-bottom: 48px; }
+  .pl-head__l2 { display: inline-flex; align-items: center; gap: 20px; padding-left: clamp(40px, 8vw, 110px); }
+  .pl-head__l2 :global(.pl-x) { transform: rotate(45deg); color: var(--white); stroke-width: 1.5; flex: none; }
+  .pl-tabs { display: inline-flex; padding: 6px; border-radius: 999px; background: var(--navy-800); border: 1px solid var(--line); margin-bottom: 40px; flex-wrap: wrap; }
+  .pl-tab { border: 0; background: none; cursor: pointer; padding: 12px 24px; border-radius: 999px; font-family: var(--font-display); font-weight: 800; font-size: 17px; letter-spacing: .04em; text-transform: uppercase; color: var(--slate); }
+  .pl-tab[aria-selected='true'] { background: var(--red); color: var(--white); }
+  .pl-days { display: none; }
+
+  .pl-row { display: grid; grid-template-columns: 100px repeat(7, minmax(0, 1fr)); gap: 8px; align-items: center; padding-block: 10px; border-top: 1px solid var(--line); }
+  .pl-row--head { border-top: 0; padding-bottom: 16px; }
+  .pl-dayname { text-align: center; font-family: var(--font-display); font-weight: 900; font-size: 20px; letter-spacing: .06em; text-transform: uppercase; }
+  .pl-time { font-family: var(--font-display); font-weight: 900; font-size: 22px; text-transform: uppercase; }
+  .pl-cell { display: flex; flex-direction: column; gap: 4px; min-height: 40px; }
+  .pl-dash { display: none; color: var(--slate); }
+  .pl-span { grid-column: 2 / span 5; display: flex; }
+  .pl-span .chip { width: 100%; height: 52px; }
+
+  .chip { display: flex; align-items: center; justify-content: center; height: 40px; padding: 0 8px; text-align: center; font-family: var(--font-display); font-weight: 900; font-size: 16px; letter-spacing: .04em; text-transform: uppercase; line-height: 1.05; }
+  .chip--W { background: var(--red); color: var(--white); }
+  .chip--H { background: var(--white); color: var(--navy); }
+  .chip--S { background: var(--navy-700); color: var(--white); border: 1.5px solid var(--slate); }
+  .chip--B { border: 1.5px dashed var(--slate); color: var(--slate); }
+
+  .pl-legend { display: flex; flex-wrap: wrap; gap: 14px 28px; margin-top: 40px; font-size: 13px; color: var(--slate); font-weight: 500; }
+  .pl-legend__item { display: inline-flex; align-items: center; gap: 10px; }
+  .chip--swatch { width: 28px; height: 16px; padding: 0; }
+  .pl-notes { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-top: 20px; font-size: 13px; color: var(--slate); font-weight: 500; }
+  .planning-sec :global(.btn-row) { margin-top: 40px; }
+
+  .pl-span__short { display: none; }
+  @media (max-width: 900px) {
+    .pl-span__full { display: none; }
+    .pl-span__short { display: inline; }
+    .pl-tabs { display: flex; }
+    .pl-tab { flex: 1; padding: 11px 12px; font-size: 15px; }
+    .pl-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 20px; }
+    .pl-day { padding: 12px 0; border: 1px solid var(--line); background: none; cursor: pointer; font-family: var(--font-display); font-weight: 900; font-size: 16px; text-transform: uppercase; }
+    .pl-day[aria-pressed='true'] { background: var(--white); color: var(--navy); border-color: var(--white); }
+    .pl-row { grid-template-columns: 84px 1fr; }
+    .pl-row--head { display: none; }
+    .pl-time { font-size: 18px; }
+    .pl-cell { display: none; flex-direction: row; }
+    .pl-cell .chip { flex: 1; font-size: 14px; }
+    .pl-empty .pl-dash { display: block; }
+    .pl-span { grid-column: 2; }
+    .pl-span .chip { height: 40px; font-size: 14px; }
+    .pl[data-day='0'] .pl-cell[data-d='0'], .pl[data-day='1'] .pl-cell[data-d='1'], .pl[data-day='2'] .pl-cell[data-d='2'],
+    .pl[data-day='3'] .pl-cell[data-d='3'], .pl[data-day='4'] .pl-cell[data-d='4'], .pl[data-day='5'] .pl-cell[data-d='5'],
+    .pl[data-day='6'] .pl-cell[data-d='6'] { display: flex; }
+    .pl[data-day='5'] .pl-span .chip, .pl[data-day='6'] .pl-span .chip { display: none; }
+    .pl[data-day='5'] .pl-span::after, .pl[data-day='6'] .pl-span::after { content: '—'; color: var(--slate); }
+  }
+</style>

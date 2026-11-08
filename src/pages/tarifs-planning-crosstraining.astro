@@ -1,0 +1,43 @@
+---
+import Base from '../layouts/Base.astro';
+import PageHero from '../components/PageHero.astro';
+import Button from '../components/Button.astro';
+import SectionHead from '../components/SectionHead.astro';
+import Tarifs from '../components/Tarifs.astro';
+import Planning from '../components/Planning.astro';
+import { ROUTES } from '../data/site';
+const niveaux = [
+  ['Débutant', 'Abonnement de base', 'Unique · 2 séances / semaine'],
+  ['Intermédiaire', '3 séances / semaine', 'Unique + packs, ou Premium'],
+  ['Confirmé', '4 séances / semaine', 'Premium Access'],
+  ['Athlète', '5 séances et +', 'Premium Access'],
+];
+---
+<Base title="Tarifs & planning" description="Tarifs des abonnements WM Athletics (59 €, 79 €, 115 €), carnets, drop-in et planning des cours à Chantenay et Haute-Goulaine.">
+  <PageHero crumb="Accueil / Tarifs & planning" l1="Tarifs" l2="& planning." image="/images/rig.jpg" intro="Des formules claires, sans frais cachés. Ta première séance est offerte, et ton coach t’aide à choisir la formule adaptée à ton rythme.">
+    <Button href={ROUTES.essai}>Séance d’essai offerte</Button>
+  </PageHero>
+  <Tarifs />
+  <section class="section section--light">
+    <div class="container">
+      <SectionHead eyebrow="Conseil de coach" title="Quel rythme pour ton niveau ?" side="Nos recommandations de fréquence. Ton coach ajuste avec toi lors de ta séance d’essai." />
+      <div class="grid grid-4">
+        {niveaux.map(([l, f, p], i) => (
+          <div class:list={['card lvl', i === 3 && 'lvl--dark']}>
+            <p class="display red" style="font-size:20px">0{i + 1}</p>
+            <h3 class="display" style="font-size:44px">{l}</h3>
+            <p style="font-weight:600">{f}</p>
+            <p class="small muted">{p}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+  <Planning />
+</Base>
+
+<style>
+  .lvl { display: flex; flex-direction: column; gap: 12px; }
+  .lvl--dark { background: var(--navy) !important; color: var(--bone); }
+  .lvl--dark .muted { color: var(--slate) !important; }
+</style>

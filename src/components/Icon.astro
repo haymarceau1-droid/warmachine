@@ -1,0 +1,46 @@
+---
+// Jeu d'icônes WM (trait arrondi, grille 24 px) — identique à la maquette Figma.
+export type IconName =
+  | 'calendrier' | 'ticket' | 'repere' | 'message' | 'valide' | 'envoyer' | 'telephone'
+  | 'mail' | 'horloge' | 'haltere' | 'document' | 'lecture' | 'groupe' | 'instagram' | 'facebook'
+  | 'menu' | 'fermer' | 'plus';
+
+interface Props { name: IconName; size?: number; class?: string; label?: string }
+const { name, size = 18, class: cls, label } = Astro.props;
+
+const P: Record<IconName, string> = {
+  calendrier: '<rect x="3" y="4.5" width="18" height="16.5" rx="3.5"/><path d="M8 2.5v4M16 2.5v4M3 10h18M8.5 14.5h.01M12 14.5h.01M15.5 14.5h.01M8.5 17.5h.01M12 17.5h.01"/>',
+  ticket: '<path d="M3 9.2a2.8 2.8 0 0 0 0 5.6V17a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2.2a2.8 2.8 0 0 1 0-5.6V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2z"/><path d="M14 5.5v1.5M14 11.2v1.6M14 17v1.5"/>',
+  repere: '<path d="M19.5 10c0 5.2-7.5 11.5-7.5 11.5S4.5 15.2 4.5 10a7.5 7.5 0 0 1 15 0z"/><circle cx="12" cy="10" r="2.8"/>',
+  message: '<path d="M20.5 11.6a8.4 8.4 0 0 1-12.2 7.5L3.5 20.5l1.4-4.6A8.4 8.4 0 1 1 20.5 11.6z"/><path d="M8.5 11.8h.01M12 11.8h.01M15.5 11.8h.01"/>',
+  valide: '<circle cx="12" cy="12" r="9"/><path d="M8.3 12.4l2.5 2.5 4.9-5"/>',
+  envoyer: '<path d="M21 3 10.5 13.5"/><path d="M21 3l-6.5 18-4-7.5L3 9.5z"/>',
+  telephone: '<path d="M21 16.4v2.8a2 2 0 0 1-2.2 2A18.5 18.5 0 0 1 2.8 5.2 2 2 0 0 1 4.8 3h2.8a1.5 1.5 0 0 1 1.5 1.2c.2 1 .5 2 .9 2.9a1.5 1.5 0 0 1-.4 1.6L8.4 9.9a15 15 0 0 0 5.7 5.7l1.2-1.2a1.5 1.5 0 0 1 1.6-.4c.9.4 1.9.7 2.9.9a1.5 1.5 0 0 1 1.2 1.5z"/>',
+  mail: '<rect x="2.5" y="4.5" width="19" height="15" rx="3.5"/><path d="M3 7.5l9 6 9-6"/>',
+  horloge: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/>',
+  haltere: '<path d="M6.5 7v10M17.5 7v10M3.5 9.5v5M20.5 9.5v5M6.5 12h11"/>',
+  document: '<path d="M14 3H7.5A2.5 2.5 0 0 0 5 5.5v13A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V8z"/><path d="M14 3v5h5M9 13h6M9 16.5h4"/>',
+  lecture: '<path d="M2.5 5.5h5.5a4 4 0 0 1 4 4V20a3 3 0 0 0-3-3H2.5z"/><path d="M21.5 5.5H16a4 4 0 0 0-4 4V20a3 3 0 0 1 3-3h6.5z"/>',
+  groupe: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.2a6.5 6.5 0 0 1 3.5 5.8"/>',
+  instagram: '<rect x="3" y="3" width="18" height="18" rx="5.5"/><circle cx="12" cy="12" r="4"/><path d="M17.4 6.6h.01"/>',
+  facebook: '<path d="M15 3.5h-2.2A3.8 3.8 0 0 0 9 7.3V10H6.5v3.5H9V21h3.5v-7.5H15l.5-3.5h-3V7.8a.8.8 0 0 1 .8-.8H15z"/>',
+  menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
+  fermer: '<path d="M6 6l12 12M18 6 6 18"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+};
+---
+<svg
+  class={cls}
+  width={size}
+  height={size}
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  aria-hidden={label ? undefined : 'true'}
+  role={label ? 'img' : undefined}
+  aria-label={label}
+  set:html={P[name]}
+/>

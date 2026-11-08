@@ -1,0 +1,78 @@
+---
+import Base from '../layouts/Base.astro';
+import PageHero from '../components/PageHero.astro';
+import SectionHead from '../components/SectionHead.astro';
+import Button from '../components/Button.astro';
+import { CONTACT, FORM_ENDPOINT } from '../data/site';
+const formats = [
+  ['First Time', '1 h de cross-training en salle + 30 min d’échange nutrition autour d’une boisson de récupération.', 'Dès 15 € / pers.', false],
+  ['Boot Camp', '1 h d’entraînement intensif façon militaire, en extérieur + 30 min d’échange nutrition.', 'Dès 15 € / pers.', true],
+  ['Sur mesure', 'Volume d’entraînement défini ensemble selon tes objectifs. Option repas traiteur et conférence nutrition / hygiène de vie.', 'Sur devis', false],
+] as const;
+const prix = [['5 à 9 personnes', '30 €'], ['10 à 19 personnes', '25 €'], ['20 à 29 personnes', '20 €'], ['30 à 39 personnes', '18 €'], ['40 à 100 personnes', '15 €']];
+const benefices = ['Plus de cohésion entre collègues', 'Une meilleure écoute et communication', 'Une ambiance de confiance et de jeu', 'Plus de performance et d’intelligence collective', 'L’envie de repousser ses limites'];
+---
+<Base title="Séminaires & team building" description="Team building et séminaires d’entreprise encadrés par un coach WM Athletics à Nantes : First Time, Boot Camp ou sur mesure." cta={false}>
+  <PageHero crumb="Accueil / Séminaires & team building" l1="Séminaires" l2="& team building." image="/images/wod.jpg" intro="Une séance encadrée par un coach WM pour souder tes équipes. Le collectif est plus fort que la somme des individualités." />
+  <section class="section section--light">
+    <div class="container">
+      <SectionHead eyebrow="Nos formats" title="Trois façons de bouger ensemble." side="À intégrer dans un séminaire résidentiel ou une journée d’étude, sur l’une de nos deux salles." />
+      <div class="grid grid-3">
+        {formats.map(([t, d, p, hl]) => (
+          <div class:list={['card fmt', hl && 'card--red']}><h3 class="display" style="font-size:55px">{t}</h3><p class:list={['small', !hl && 'muted']}>{d}</p><p class:list={['display', !hl && 'red']} style="font-size:28px">{p}</p></div>
+        ))}
+      </div>
+    </div>
+  </section>
+  <section class="section">
+    <div class="container tb">
+      <div class="stack" style="gap:20px">
+        <p class="eyebrow">Tarifs · First Time & Boot Camp</p>
+        <h2 class="display h-section">Plus on est,<br />moins c’est cher.</h2>
+        <p class="small muted">Prix par personne, TTC.</p>
+      </div>
+      <div>
+        {prix.map(([a, b]) => <div class="prow"><span class="display">{a}</span><span class="display red">{b}</span></div>)}
+      </div>
+    </div>
+  </section>
+  <section class="section section--light">
+    <div class="container">
+      <SectionHead eyebrow="Pourquoi" title="Ce que ton équipe y gagne." />
+      <div class="benef">
+        {benefices.map((b, i) => <div class="card"><p class="display red" style="font-size:22px">0{i + 1}</p><p class="display" style="font-size:28px;line-height:1.05">{b}</p></div>)}
+      </div>
+    </div>
+  </section>
+  <section class="section">
+    <div class="container">
+      <SectionHead eyebrow="Demande de devis" title="Parlons de ton projet." />
+      <form class="form dark-form" method="post" action={FORM_ENDPOINT}>
+        <div class="form-row">
+          <div class="field"><label for="t-nom">Nom</label><input id="t-nom" name="nom" required /></div>
+          <div class="field"><label for="t-prenom">Prénom</label><input id="t-prenom" name="prenom" required /></div>
+        </div>
+        <div class="form-row">
+          <div class="field"><label for="t-tel">Téléphone</label><input id="t-tel" name="telephone" type="tel" /></div>
+          <div class="field"><label for="t-email">Email</label><input id="t-email" name="email" type="email" required /></div>
+        </div>
+        <fieldset class="field"><legend>Salle souhaitée</legend>
+          <div class="checks"><label class="check"><input type="checkbox" name="salle" value="wm1" />WM1 · Chantenay</label><label class="check"><input type="checkbox" name="salle" value="wm2" />WM2 · Haute-Goulaine</label></div>
+        </fieldset>
+        <div class="field"><label for="t-msg">Message (facultatif)</label><textarea id="t-msg" name="message" placeholder="Nombre de participants, date, format…"></textarea></div>
+        <div class="btn-row" style="align-items:center"><Button type="submit" icon="envoyer">Envoyer</Button><span class="small muted">[ Une question ? {CONTACT.phone} · {CONTACT.email} ]</span></div>
+      </form>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .fmt { display: flex; flex-direction: column; gap: 16px; }
+  .tb { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
+  .prow { display: flex; justify-content: space-between; align-items: center; padding-block: 18px; border-bottom: 1px solid var(--line); }
+  .prow .display:first-child { font-size: 30px; }
+  .prow .display:last-child { font-size: 46px; }
+  .benef { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px; }
+  .benef .card { padding: 24px; display: flex; flex-direction: column; gap: 12px; }
+  @media (max-width: 1024px) { .benef { grid-template-columns: repeat(2, 1fr); } .tb { grid-template-columns: 1fr; } }
+</style>

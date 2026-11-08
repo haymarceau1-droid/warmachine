@@ -1,0 +1,18 @@
+---
+import { CONTACT, SALLES, type SalleId } from '../data/site';
+interface Props { salle: SalleId }
+const s = SALLES[Astro.props.salle];
+---
+<aside class="info">
+  <div><p class="eyebrow">Adresse</p><p class="info__v">{s.adresse}, {s.ville}</p></div>
+  <div><p class="eyebrow">Horaires</p><p class="info__v">Lun. & mer. 7h–21h · Mar. & jeu. 10h–21h · Ven. 7h–20h · Sam. & dim. 10h–12h</p></div>
+  <div><p class="eyebrow">Une question ?</p><p class="display info__phone"><a href={CONTACT.phoneHref}>{CONTACT.phone}</a></p><p class="small muted"><a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a> · {CONTACT.phoneNote}</p></div>
+</aside>
+
+<style>
+  .info { display: flex; flex-direction: column; gap: 24px; padding: 40px; background: var(--navy); color: var(--bone); border-radius: var(--radius); align-self: start; }
+  .info .eyebrow { margin-bottom: 6px; }
+  .info__v { font-weight: 600; font-size: 17px; line-height: 1.5; }
+  .info__phone { font-size: 34px; }
+  .info :global(.muted) { color: var(--slate); }
+</style>

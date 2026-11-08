@@ -1,0 +1,48 @@
+---
+import Base from '../layouts/Base.astro';
+import PageHero from '../components/PageHero.astro';
+import Icon from '../components/Icon.astro';
+import { FAQ } from '../data/site';
+const slug = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-');
+---
+<Base title="FAQ" description="Questions fréquentes sur WM Athletics : débuter, séance d’essai, tarifs, horaires et salles.">
+  <PageHero crumb="Accueil / FAQ" l1="FAQ." l2="Tes questions." image="/images/pano.jpg" intro="Tout ce qu’il faut savoir avant ta première séance. Tu ne trouves pas ta réponse ? Écris-nous." />
+  <section class="section section--light">
+    <div class="container faq">
+      <nav class="faq__nav" aria-label="Rubriques">
+        {FAQ.map(([g]) => <a href={`#${slug(g)}`} class="display">{g}</a>)}
+      </nav>
+      <div class="faq__list">
+        {FAQ.map(([g, qs], gi) => (
+          <div class="faq__group" id={slug(g)}>
+            <p class="eyebrow">{g}</p>
+            {qs.map(([q, a], qi) => (
+              <details open={gi === 0 && qi === 0}>
+                <summary><span class="display">{q}</span><span class="faq__icon"><Icon name="plus" size={20} /></span></summary>
+                <p>{a}</p>
+              </details>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .faq { display: grid; grid-template-columns: 260px 1fr; gap: 80px; }
+  .faq__nav { position: sticky; top: 120px; align-self: start; display: flex; flex-direction: column; gap: 14px; }
+  .faq__nav a { font-size: 28px; }
+  .faq__nav a:hover { color: var(--red); }
+  .faq__list { display: flex; flex-direction: column; gap: 56px; }
+  .faq__group { scroll-margin-top: 120px; }
+  .faq__group .eyebrow { margin-bottom: 20px; }
+  details { border-top: 1px solid var(--line-light); padding-block: 24px; }
+  summary { display: flex; justify-content: space-between; align-items: center; gap: 24px; cursor: pointer; list-style: none; }
+  summary::-webkit-details-marker { display: none; }
+  summary .display { font-size: clamp(24px, 2.4vw, 32px); line-height: 1.1; }
+  .faq__icon { flex: none; width: 44px; height: 44px; border-radius: 50%; background: var(--light); display: grid; place-items: center; transition: transform .25s var(--ease), background-color .2s; }
+  details[open] .faq__icon { background: var(--red); color: var(--white); transform: rotate(45deg); }
+  details p { margin-top: 16px; color: var(--muted); font-size: 17px; line-height: 1.6; max-width: 760px; }
+  @media (max-width: 900px) { .faq { grid-template-columns: 1fr; gap: 32px; } .faq__nav { position: static; flex-direction: row; flex-wrap: wrap; gap: 8px 24px; } .faq__nav a { font-size: 22px; } }
+</style>

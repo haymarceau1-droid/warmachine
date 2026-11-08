@@ -1,0 +1,72 @@
+---
+import Base from '../layouts/Base.astro';
+import PageHero from '../components/PageHero.astro';
+import SectionHead from '../components/SectionHead.astro';
+import Button from '../components/Button.astro';
+import { CONTACT, FORM_ENDPOINT } from '../data/site';
+const postes = [
+  ['Head coach', 'Encadrer l’équipe de coachs et la programmation.'],
+  ['Coach', 'Animer les cours collectifs et accompagner les membres.'],
+  ['Stagiaire coach', 'Pour les étudiants BPJEPS, STAPS ou CQP IF.'],
+  ['Com & marketing', 'Stage ou alternance en communication / marketing.'],
+];
+---
+<Base title="Recrutement" description="WM Athletics recrute : head coach, coach, stagiaire coach, stage ou alternance communication / marketing à Nantes." cta={false}>
+  <PageHero crumb="Accueil / Recrutement" l1="WM recrute." l2="Rejoins l’équipe." image="/images/groupe.jpg" intro="Tu es passionné·e par le coaching et l’humain ? On cherche des profils motivés pour faire vivre nos deux salles nantaises." />
+  <section class="section">
+    <div class="container">
+      <SectionHead eyebrow="Postes ouverts" title="On cherche." />
+      <div class="grid grid-4">
+        {postes.map(([t, d], i) => (
+          <div class="card poste"><p class="display red" style="font-size:22px">0{i + 1}</p><h3 class="display" style="font-size:46px;line-height:1">{t}</h3><p class="small muted">{d}</p></div>
+        ))}
+      </div>
+    </div>
+  </section>
+  <section class="section section--light">
+    <div class="container">
+      <SectionHead eyebrow="Candidature" title="Je postule." side="Remplis le formulaire, on te répond dès que possible." />
+      <form class="form" method="post" action={FORM_ENDPOINT} enctype="multipart/form-data">
+        <div class="form-row">
+          <div class="field"><label for="r-nom">Nom</label><input id="r-nom" name="nom" required /></div>
+          <div class="field"><label for="r-prenom">Prénom</label><input id="r-prenom" name="prenom" required /></div>
+          <div class="field"><label for="r-naiss">Date de naissance</label><input id="r-naiss" name="naissance" type="date" /></div>
+        </div>
+        <div class="form-row">
+          <div class="field"><label for="r-email">Email</label><input id="r-email" name="email" type="email" required /></div>
+          <div class="field"><label for="r-tel">Téléphone</label><input id="r-tel" name="telephone" type="tel" /></div>
+          <div class="field"><label for="r-poste">Poste souhaité</label>
+            <select id="r-poste" name="poste"><option>Head coach</option><option>Coach</option><option>Stagiaire coach</option><option>Stagiaire / alternance communication & marketing</option></select>
+          </div>
+        </div>
+        <fieldset class="field"><legend>Domaines où tu es à l’aise</legend>
+          <div class="checks">{['Haltérophilie', 'Gymnastique', 'Cardio'].map((d) => <label class="check"><input type="checkbox" name="domaines" value={d} />{d}</label>)}</div>
+        </fieldset>
+        <div class="form-row">
+          <div class="field"><label for="r-sit">Situation actuelle</label><input id="r-sit" name="situation" placeholder="Étudiant·e, salarié·e…" /></div>
+          <div class="field"><label for="r-exp">Expérience en cross-training</label><input id="r-exp" name="experience" placeholder="Depuis quand, quel niveau…" /></div>
+        </div>
+        <div class="form-row">
+          <div class="field"><label for="r-dip">Diplômes / certifications</label><input id="r-dip" name="diplomes" placeholder="BPJEPS, STAPS, CQP…" /></div>
+          <div class="field"><label for="r-ent">Entreprises précédentes</label><input id="r-ent" name="entreprises" /></div>
+        </div>
+        <div class="form-row">
+          <div class="field"><label for="r-dispo">Date de disponibilité</label><input id="r-dispo" name="disponibilite" type="date" /></div>
+          <div class="field"><label for="r-contrat">Type de contrat souhaité</label>
+            <select id="r-contrat" name="contrat"><option>CDI</option><option>CDD</option><option>Stage</option><option>Alternance</option></select>
+          </div>
+        </div>
+        <div class="field"><label for="r-cv">CV (PDF, 5 Mo max)</label><input id="r-cv" name="cv" type="file" accept=".pdf,.doc,.docx" class="file" /></div>
+        <div class="btn-row" style="align-items:center">
+          <Button type="submit" icon="document">Je postule</Button>
+          <span class="small muted">[ Une question ? {CONTACT.phone} · {CONTACT.email} ]</span>
+        </div>
+      </form>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .poste { display: flex; flex-direction: column; gap: 14px; }
+  .file { border-style: dashed !important; padding: 28px 18px !important; }
+</style>

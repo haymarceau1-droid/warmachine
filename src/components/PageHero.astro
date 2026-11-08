@@ -1,0 +1,25 @@
+---
+// Haut de page des pages secondaires : photo à opacité réduite, fondue vers le marine.
+interface Props { crumb: string; l1: string; l2?: string; image: string; intro?: string }
+const { crumb, l1, l2, image, intro } = Astro.props;
+---
+<section class="phero">
+  <div class="phero__bg" style={`background-image:url('${image}')`} aria-hidden="true"></div>
+  <div class="container phero__inner">
+    <p class="crumb">[ {crumb} ]</p>
+    <h1 class="display h-page">{l1}{l2 && <><br /><span class="red">{l2}</span></>}</h1>
+    <div class="phero__bottom">
+      {intro && <p class="lead phero__intro">{intro}</p>}
+      <div class="btn-row"><slot /></div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .phero { position: relative; background: var(--navy); overflow: hidden; }
+  .phero__bg { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: .28; filter: saturate(.4) contrast(1.1); }
+  .phero::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(13,26,45,0) 0%, rgba(13,26,45,0) 45%, rgba(13,26,45,.85) 85%, var(--navy) 100%); pointer-events: none; }
+  .phero__inner { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 28px; padding-top: clamp(140px, 16vw, 220px); padding-bottom: clamp(64px, 7vw, 100px); }
+  .phero__bottom { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 28px 40px; }
+  .phero__intro { max-width: 640px; color: var(--white); }
+</style>

@@ -1,0 +1,37 @@
+---
+import SectionHead from './SectionHead.astro';
+import { COACHS, SALLES, type SalleId } from '../data/site';
+
+interface Props { salle?: SalleId; side?: string }
+const { salle, side = 'Des coachs diplômés et passionnés qui connaissent chaque membre par son prénom et suivent ta progression semaine après semaine.' } = Astro.props;
+const list = salle ? COACHS.filter((c) => c.salles.includes(salle)) : COACHS;
+---
+<section class="section section--light" id="equipe">
+  <div class="container">
+    <SectionHead eyebrow="L’équipe WM" title="Les coachs." side={side} />
+    <div class="team">
+      {list.map((c) => (
+        <article class="coach">
+          <div class="coach__photo photo" style={`background-image:url('/images/coachs/${c.nom.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')}.jpg')`}>
+            <span class="coach__sites">{c.salles.map((s) => SALLES[s].code).join(' · ')}</span>
+          </div>
+          <h3 class="display coach__name">{c.nom}</h3>
+          <p class="coach__role">{c.role}</p>
+          <p class="coach__quote">{c.quote}</p>
+        </article>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .team { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 48px 24px; }
+  .coach { display: flex; flex-direction: column; gap: 6px; }
+  .coach__photo { aspect-ratio: 282 / 340; display: flex; align-items: flex-end; padding: 16px; margin-bottom: 10px; }
+  .coach__sites { background: var(--navy); color: var(--bone); font-size: 11px; font-weight: 700; letter-spacing: .06em; padding: 5px 10px; }
+  .coach__name { font-size: 37px; line-height: 1; }
+  .coach__role { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--red); }
+  .coach__quote { font-size: 14px; color: var(--muted); line-height: 1.45; }
+  @media (max-width: 1024px) { .team { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 720px) { .team { grid-template-columns: repeat(2, 1fr); gap: 32px 16px; } .coach__name { font-size: 28px; } }
+</style>

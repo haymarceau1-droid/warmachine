@@ -1,0 +1,23 @@
+---
+import Button from './Button.astro';
+import { CONTACT, ROUTES } from '../data/site';
+---
+<section class="cta">
+  <div class="container cta__inner">
+    <h2 class="display cta__title">Une envie<br />de tester ?</h2>
+    <p class="lead">Ta première séance est offerte. Une question ? On te répond vite et avec le sourire.</p>
+    <div class="btn-row cta__btns">
+      <Button href={ROUTES.essai} variant="dark">Essai gratuit · Chantenay</Button>
+      <Button href={ROUTES.essaiWm2} variant="dark">Essai gratuit · Haute-Goulaine</Button>
+    </div>
+    <p class="cta__contact"><a href={CONTACT.phoneHref}>{CONTACT.phone}</a> · <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a></p>
+  </div>
+</section>
+
+<style>
+  .cta { background: var(--red); color: var(--bone); padding-block: clamp(88px, 11vw, 160px); text-align: center; }
+  .cta__inner { display: flex; flex-direction: column; align-items: center; gap: 32px; }
+  .cta__title { font-size: clamp(72px, 13vw, 207px); line-height: .86; }
+  .cta__btns { justify-content: center; }
+  .cta__contact { font-weight: 700; font-size: 16px; letter-spacing: .02em; }
+</style>

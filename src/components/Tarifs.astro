@@ -1,0 +1,43 @@
+---
+import SectionHead from './SectionHead.astro';
+import Button from './Button.astro';
+import { TARIFS, EXTRAS, ROUTES } from '../data/site';
+---
+<section class="section" id="tarifs">
+  <div class="container">
+    <SectionHead eyebrow="Tarifs" title="Simple. Sans surprise." side="Prix TTC. Abonnements avec engagement semestriel. −10 € pour les moins de 30 ans (hors Premium Access)." />
+    <div class="grid grid-3 plans">
+      {TARIFS.map((t) => (
+        <article class:list={['plan', t.highlight && 'plan--hl']}>
+          <p class="plan__name">{t.nom}</p>
+          <p class="plan__price"><span class="display">{t.prix} €</span><span>/ mois</span></p>
+          <p class="plan__desc">{t.desc}</p>
+          <p class="plan__note">{t.note}</p>
+          <Button href={ROUTES.essai} variant={t.highlight ? 'dark' : 'glass'} icon="valide" block>Choisir {t.nom}</Button>
+        </article>
+      ))}
+    </div>
+    <div class="extras">
+      {EXTRAS.map(([a, b, c]) => (
+        <div class="extra"><p class="plan__name">{a}</p><p class="display extra__price">{b}</p><p class="small muted">{c}</p></div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .plan { display: flex; flex-direction: column; gap: 22px; padding: 36px; background: var(--navy-700); }
+  .plan--hl { background: var(--red); }
+  .plan__name { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--slate); }
+  .plan--hl .plan__name, .plan--hl .plan__note { color: var(--bone); }
+  .plan__price { display: flex; align-items: baseline; gap: 8px; color: var(--slate); }
+  .plan--hl .plan__price { color: var(--bone); }
+  .plan__price .display { font-size: clamp(72px, 7vw, 100px); color: var(--bone); line-height: .9; }
+  .plan__desc { font-size: 16px; }
+  .plan__note { font-size: 13px; color: var(--slate); padding-top: 20px; border-top: 1px solid rgba(255,255,255,.15); margin-top: auto; }
+  .extras { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 16px; border: 1px solid var(--line); }
+  .extra { padding: 28px; display: flex; flex-direction: column; gap: 6px; }
+  .extra + .extra { border-left: 1px solid var(--line); }
+  .extra__price { font-size: 48px; line-height: 1; }
+  @media (max-width: 900px) { .extras { grid-template-columns: repeat(2, 1fr); } .extra:nth-child(3) { border-left: 0; } .extra:nth-child(n+3) { border-top: 1px solid var(--line); } }
+</style>

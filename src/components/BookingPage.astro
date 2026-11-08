@@ -1,0 +1,87 @@
+---
+import Base from '../layouts/Base.astro';
+import PageHero from './PageHero.astro';
+import Button from './Button.astro';
+import InfoSalle from './InfoSalle.astro';
+import { ROUTES, SALLES, BOOKING, type SalleId } from '../data/site';
+
+interface Props { kind: 'essai' | 'dropin'; salle: SalleId }
+const { kind, salle } = Astro.props;
+const s = SALLES[salle];
+const isEssai = kind === 'essai';
+const links = isEssai ? { wm1: ROUTES.essai, wm2: ROUTES.essaiWm2 } : { wm1: ROUTES.dropin, wm2: ROUTES.dropinWm2 };
+const steps = [
+  ['01', 'Choisis ta salle', 'Chantenay ou Haute-Goulaine, même esprit, même équipe.'],
+  ['02', 'Réserve ton créneau', 'En ligne, sur le planning de la salle.'],
+  ['03', 'Viens t’entraîner', 'Un coach t’accueille et adapte la séance à ton niveau.'],
+];
+---
+<Base
+  title={isEssai ? `Séance d’essai offerte · WM ${s.nom}` : `Drop-in · WM ${s.nom}`}
+  description={isEssai ? `Réserve ta séance d’essai gratuite de Hyrox et cross-training à WM ${s.nom}.` : `Réserve un drop-in à 20 € à WM ${s.nom}, de passage à Nantes.`}
+  cta={false}
+>
+  {isEssai ? (
+    <PageHero crumb="Accueil / Séance d’essai" l1="Ta séance" l2="d’essai offerte." image="/images/groupe.jpg" intro="Viens tester l’Hyrox et le cross-training à WM Athletics. Choisis ta salle, réserve ton créneau, on s’occupe du reste." />
+  ) : (
+    <PageHero crumb="Accueil / Drop-in" l1="Drop-in." l2="De passage à Nantes ?" image="/images/handstand.jpg" intro="Tu voyages, tu t’entraînes ailleurs ou tu veux juste une séance : réserve ton prochain drop-in chez WM." />
+  )}
+  <section class="section section--light">
+    <div class="container">
+      <nav class="tabs" aria-label="Choix de la salle">
+        {(['wm1', 'wm2'] as SalleId[]).map((id) => (
+          <a href={links[id]} aria-current={id === salle ? 'page' : undefined}>{SALLES[id].code} · {SALLES[id].nom}</a>
+        ))}
+      </nav>
+      <div class="booking">
+        <div class="stack" style="gap:40px">
+          {isEssai ? (
+            <>
+              <h2 class="display" style="font-size:64px">Comment ça marche</h2>
+              <div class="grid grid-3">
+                {steps.map(([n, t, d]) => (
+                  <div class="card step"><p class="display red" style="font-size:25px">{n}</p><h3 class="display" style="font-size:34px;line-height:1">{t}</h3><p class="small muted">{d}</p></div>
+                ))}
+              </div>
+              <div class="cta-box">
+                <h3 class="display" style="font-size:50px">Prêt·e ? C’est gratuit.</h3>
+                <div class="btn-row" style="align-items:center">
+                  <Button href={BOOKING.essai[salle]} variant="dark" external>Réserver ma séance d’essai gratuite</Button>
+                  <span class="small">[ Réservation via l’app Peppy ]</span>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <p class="price"><span class="display">20 €</span><span class="muted">la séance · CB ou espèces</span></p>
+              <p>Accès à un cours collectif au planning, encadré par un coach. Tu t’entraînes souvent chez nous ? Les carnets de 10 ou 20 séances reviennent moins cher.</p>
+              <div class="grid grid-2">
+                <div class="card"><p class="label">Carnet 10 séances</p><p class="display" style="font-size:50px">150 €</p><p class="small muted">Valable 6 mois</p></div>
+                <div class="card"><p class="label">Carnet 20 séances</p><p class="display" style="font-size:50px">260 €</p><p class="small muted">Valable 10 mois</p></div>
+              </div>
+              <div class="btn-row" style="align-items:center">
+                <Button href={BOOKING.dropin[salle]} icon="ticket" external>Réserver un drop-in</Button>
+                <span class="small muted">[ Réservation via l’app Peppy ]</span>
+              </div>
+            </>
+          )}
+        </div>
+        <InfoSalle salle={salle} />
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .tabs { display: inline-flex; flex-wrap: wrap; padding: 6px; border-radius: 999px; background: var(--light); margin-bottom: 56px; }
+  .tabs a { padding: 14px 28px; border-radius: 999px; font-family: var(--font-display); font-weight: 900; font-size: 20px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+  .tabs a[aria-current='page'] { background: var(--red); color: var(--white); }
+  .booking { display: grid; grid-template-columns: 1fr 440px; gap: 64px; align-items: start; }
+  .step { display: flex; flex-direction: column; gap: 12px; padding: 24px; }
+  .cta-box { background: var(--red); color: var(--bone); padding: 32px; display: flex; flex-direction: column; gap: 20px; }
+  .price { display: flex; align-items: baseline; flex-wrap: wrap; gap: 16px; }
+  .price .display { font-size: clamp(120px, 14vw, 184px); line-height: .85; }
+  .label { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  @media (max-width: 960px) { .booking { grid-template-columns: 1fr; } }
+  @media (max-width: 600px) { .tabs { display: grid; grid-template-columns: 1fr 1fr; width: 100%; } .tabs a { padding: 12px 8px; font-size: 15px; text-align: center; } }
+</style>
