@@ -59,20 +59,28 @@ if (!reduce && 'IntersectionObserver' in window) {
   );
   document.querySelectorAll('.rv-title, .rv-block').forEach((el) => io.observe(el));
 
-  // Parallaxe douce sur les photos de hero
-  const bgs = document.querySelectorAll<HTMLElement>('.hero__bg, .phero__bg');
-  let ticking = false;
-  const onScroll = () => {
-    if (ticking) return;
-    ticking = true;
-    requestAnimationFrame(() => {
-      const y = Math.min(window.scrollY, 900);
-      bgs.forEach((b) => (b.style.transform = `translate3d(0, ${y * 0.25}px, 0) scale(1.08)`));
-      ticking = false;
-    });
-  };
-  window.addEventListener('scroll', onScroll, { passive: true });
-  onScroll();
+  // Parallaxe douce des photos de hero — uniquement sur grand écran avec souris
+  // (désactivée sur mobile : la barre d'adresse qui se rétracte la rend saccadée).
+  if (window.matchMedia('(min-width: 901px) and (pointer: fine)').matches) {
+    const bgs = Array.from(document.querySelectorAll<HTMLElement>('.hero__bg, .phero__bg'));
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        bgs.forEach((b) => {
+          const host = b.parentElement!;
+          const h = host.offsetHeight;
+          const y = Math.min(window.scrollY, h); // hors écran : on ne bouge plus
+          const max = h * 0.07; // reste dans la marge de 8 % ajoutée en CSS
+          b.style.transform = `translate3d(0, ${Math.min(y * 0.15, max)}px, 0)`;
+        });
+        ticking = false;
+      });
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+  }
 } else {
   document.documentElement.classList.remove('js');
 }

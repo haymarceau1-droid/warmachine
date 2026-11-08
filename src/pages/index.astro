@@ -118,21 +118,25 @@ const salles = [SALLES.wm1, SALLES.wm2];
 <style>
   .hero { position: relative; min-height: min(100svh, 980px); display: flex; align-items: flex-end; overflow: hidden; }
   .hero__bg {
-    position: absolute; inset: 0;
-    background:
-      linear-gradient(90deg, rgba(13,26,45,.94) 0%, rgba(13,26,45,.55) 55%, rgba(13,26,45,.1) 100%),
-      linear-gradient(180deg, rgba(13,26,45,.55) 0%, rgba(13,26,45,0) 35%, rgba(13,26,45,.2) 70%, var(--navy) 100%),
-      url('/images/wod.jpg') center / cover var(--navy-600);
+    position: absolute; inset: -8% 0; /* plus grand que le hero : aucun bord visible pendant la parallaxe */
+    background: url('/images/wod.jpg') center / cover var(--navy-600);
     filter: saturate(.7) contrast(1.1);
   }
+  /* Dégradés fixes, indépendants de la photo */
+  .hero::after {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background:
+      linear-gradient(90deg, rgba(13,26,45,.94) 0%, rgba(13,26,45,.55) 55%, rgba(13,26,45,.1) 100%),
+      linear-gradient(180deg, rgba(13,26,45,.55) 0%, rgba(13,26,45,0) 35%, rgba(13,26,45,.2) 70%, var(--navy) 100%);
+  }
   .hero__badge {
-    position: absolute; right: clamp(20px, 4vw, 56px); top: clamp(110px, 12vw, 170px); z-index: 2;
+    position: absolute; right: clamp(20px, 4vw, 56px); top: clamp(110px, 12vw, 170px); z-index: 3;
     width: clamp(120px, 13vw, 190px); aspect-ratio: 1; border-radius: 50%; background: var(--red);
     display: grid; place-items: center; text-align: center; font-size: clamp(18px, 2vw, 28px); line-height: 1; transform: rotate(-10deg);
     transition: transform .3s var(--ease);
   }
   .hero__badge:hover { transform: rotate(-4deg) scale(1.04); }
-  .hero__inner { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 32px; padding-top: 180px; padding-bottom: clamp(56px, 6vw, 80px); }
+  .hero__inner { position: relative; z-index: 2; display: flex; flex-direction: column; gap: 32px; padding-top: 180px; padding-bottom: clamp(56px, 6vw, 80px); }
   .hero__bottom { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 28px 40px; }
   .hero__lead { max-width: 560px; color: var(--white); }
 
@@ -150,7 +154,7 @@ const salles = [SALLES.wm1, SALLES.wm2];
   .salle__photo { aspect-ratio: 16 / 10; padding: 28px; }
   .tag-sq { display: inline-block; background: var(--red); padding: 6px 12px; font-size: 25px; }
   .salle__body { display: flex; flex-direction: column; gap: 18px; padding: 40px; }
-  .salle__more { font-size: 14px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--red); }
+  .salle__more { font-size: 14px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--bone); }
   .salle__more:hover { text-decoration: underline; }
 
   .cours { display: flex; flex-direction: column; justify-content: space-between; gap: 32px; min-height: 300px; padding: 28px; background: var(--light); }

@@ -30,7 +30,7 @@ const list = salle ? COACHS.filter((c) => c.salles.includes(salle)) : COACHS;
   .coach__photo { aspect-ratio: 282 / 340; display: flex; align-items: flex-end; padding: 16px; margin-bottom: 10px; }
   .coach__sites { background: var(--navy); color: var(--bone); font-size: 11px; font-weight: 700; letter-spacing: .06em; padding: 5px 10px; }
   .coach__name { font-size: 37px; line-height: 1; }
-  .coach__role { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--red); }
+  .coach__role { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
   .coach__quote { font-size: 14px; color: var(--muted); line-height: 1.45; }
   @media (max-width: 1024px) { .team { grid-template-columns: repeat(3, 1fr); } }
   @media (max-width: 720px) { .team { grid-template-columns: repeat(2, 1fr); gap: 32px 16px; } .coach__name { font-size: 28px; } }

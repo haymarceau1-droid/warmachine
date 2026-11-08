@@ -21,6 +21,12 @@
   --gutter: clamp(20px, 5vw, 120px);
   --section-y: clamp(72px, 9vw, 120px);
   --radius: 20px;
+
+  /* Accents : sur fond sombre on évite le rouge en texte (contraste) */
+  --accent: var(--bone);        /* petits textes / icônes d'accent */
+  --eyebrow: var(--slate);      /* sur-titres [ … ] */
+  --accent-fill: transparent;   /* mot d'accent des grands titres : contour */
+  --accent-stroke: var(--bone);
   --ease: cubic-bezier(.2, .7, .2, 1);
 }
 
@@ -64,9 +70,24 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .h-page { font-size: clamp(56px, 9vw, 128px); }
 .h-section { font-size: clamp(48px, 6.2vw, 88px); }
 .h-card { font-size: clamp(30px, 3vw, 44px); line-height: 1; }
-.red { color: var(--red); }
+.red { color: var(--accent); }
+/* Mot d'accent des grands titres : rouge sur fond clair, contour sur fond sombre */
+:is(h1, h2, .cta__title) .red {
+  color: var(--accent-fill);
+  -webkit-text-stroke: var(--accent-stroke-w, .028em) var(--accent-stroke);
+  paint-order: stroke fill;
+}
+/* Contextes clairs : le rouge revient */
+.section--light {
+  --accent: var(--red); --eyebrow: var(--red);
+  --accent-fill: var(--red); --accent-stroke: transparent; --accent-stroke-w: 0;
+}
+/* Îlots sombres ou rouges posés dans une section claire */
+.section--light :is(.info, .infos, .lvl--dark, .card--red, .cours--hl, .surface--hl, .plan--hl, .cta-box) {
+  --accent: var(--bone); --eyebrow: var(--bone);
+}
 .eyebrow {
-  font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--red);
+  font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--eyebrow);
 }
 .eyebrow::before { content: '[ '; }
 .eyebrow::after { content: ' ]'; }
@@ -162,7 +183,7 @@ fieldset.field { border: 0; margin: 0; padding: 0; }
 .js .rv-block { opacity: 0; transform: translate3d(0, 28px, 0); transition: opacity .8s ease, transform .9s cubic-bezier(.16, 1, .3, 1); transition-delay: var(--d, 0ms); }
 .js .rv-block.is-in { opacity: 1; transform: none; }
 
-.hero__bg, .phero__bg { will-change: transform; transform: scale(1.08); }
+
 
 @media (prefers-reduced-motion: reduce) {
   .js .rv-title .rv-wi, .js .rv-block { opacity: 1 !important; transform: none !important; transition: none !important; }
