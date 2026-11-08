@@ -19,6 +19,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
 <html lang="fr">
   <head>
     <meta charset="utf-8" />
+    <script is:inline>document.documentElement.classList.add('js')</script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{fullTitle}</title>
     <meta name="description" content={description} />
@@ -38,5 +39,8 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     </main>
     {cta && <CtaFinal />}
     <Footer />
+    <script>
+      import '../scripts/reveal.ts';
+    </script>
   </body>
 </html>
