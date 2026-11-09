@@ -2,9 +2,11 @@
 import Base from '../layouts/Base.astro';
 import PageHero from '../components/PageHero.astro';
 import Button from '../components/Button.astro';
+import Game404 from '../components/Game404.astro';
 ---
 <Base title="Page introuvable" cta={false}>
   <PageHero crumb="404" l1="Page" l2="introuvable." image="/images/rig.webp" intro="Cette page n’existe pas ou a été déplacée.">
     <Button href="/" icon="haltere">Retour à l’accueil</Button>
   </PageHero>
+  <Game404 />
 </Base>
