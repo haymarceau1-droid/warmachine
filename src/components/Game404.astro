@@ -29,15 +29,17 @@
   if (canvas) {
     const ctx = canvas.getContext('2d')!;
     const BONE = '#efebe3', SLATE = '#9aa6b8', RED = '#d81d1d';
-    const H = 240, GROUND = 196, AX = 72;
+    const SKIN = '#e3b08a', SKIN_FAR = '#b98763', TANK = '#d81d1d', TANK_FAR = '#a31616', SHORTS = '#2d4570', SHORTS_FAR = '#1f3252', HAIR = '#1b2230';
+    const H = 240, GROUND = 196, AX = 74;
     let W = 900, dpr = 1;
 
     type Obs = { x: number; w: number; h: number; kind: 'box' | 'box2' | 'plates' | 'kb' };
-    let obs: Obs[] = [];
+    type Part = { x: number; y: number; vx: number; vy: number; life: number; r: number; c: string };
+    let obs: Obs[] = [], parts: Part[] = [];
     let state: 'idle' | 'run' | 'over' = 'idle';
     let speed = 6, dist = 0, reps = 0, best = 0;
-    let y = 0, vy = 0, onGround = true, phase = 0, nextGap = 400, shake = 0;
-    let bgX = 0, last = 0, raf = 0, visible = true;
+    let y = 0, vy = 0, onGround = true, phase = 0, nextGap = 400, shake = 0, landT = 0, deadT = 0, idleT = 0, prevSin = 0;
+    let bgX = 0, last = 0, raf = 0, visible = true, lastOver = 0;
 
     try { best = Number(localStorage.getItem('wm-wod-best')) || 0; } catch {}
 
@@ -52,22 +54,33 @@
     }
 
     function reset() {
-      obs = []; speed = 6; dist = 0; reps = 0; y = 0; vy = 0; onGround = true; phase = 0; shake = 0;
+      obs = []; parts = []; speed = 6; dist = 0; reps = 0; y = 0; vy = 0; onGround = true; phase = 0; shake = 0; landT = 0; deadT = 0;
       nextGap = 420;
     }
-
     function start() { reset(); state = 'run'; loop(performance.now(), true); }
 
     function jump() {
-      if (state === 'idle' || state === 'over') { if (state === 'over' && lastOver + 350 > performance.now()) return; start(); return; }
-      if (onGround) { vy = 11.6; onGround = false; }
+      if (state !== 'run') { if (state === 'over' && lastOver + 350 > performance.now()) return; start(); return; }
+      if (onGround) { vy = 11.6; onGround = false; landT = 0; dust(4, 0.6); }
     }
-    let lastOver = 0;
+
+    function dust(n: number, power = 1) {
+      for (let i = 0; i < n; i++) parts.push({
+        x: AX - 4 + Math.random() * 8, y: GROUND - 2, vx: -(0.4 + Math.random() * 1.6) * power - speed * 0.12, vy: -(0.3 + Math.random() * 1.2) * power,
+        life: 1, r: 1.6 + Math.random() * 2.4, c: BONE,
+      });
+    }
+    function sparks() {
+      for (let i = 0; i < 16; i++) {
+        const a = Math.random() * Math.PI * 2, v = 1.5 + Math.random() * 3.5;
+        parts.push({ x: AX, y: GROUND - 30 - y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 1.5, life: 1, r: 1.5 + Math.random() * 2, c: Math.random() < 0.5 ? RED : BONE });
+      }
+    }
 
     function spawn() {
       const kinds: Obs['kind'][] = ['box', 'box', 'box2', 'plates', 'kb', 'kb'];
       const kind = kinds[Math.floor(Math.random() * kinds.length)];
-      const dim = { box: [44, 42], box2: [92, 42], plates: [24, 62], kb: [30, 34] }[kind];
+      const dim = { box: [46, 42], box2: [94, 42], plates: [26, 62], kb: [32, 36] }[kind];
       obs.push({ x: W + 20, w: dim[0], h: dim[1], kind });
       nextGap = speed * 40 + 120 + Math.random() * 220;
     }
@@ -76,17 +89,21 @@
       speed = Math.min(13.5, speed + 0.0022 * dt);
       dist += speed * dt;
       reps = Math.floor(dist / 55);
-      bgX = (bgX + speed * 0.35 * dt) % 400;
-      phase += speed * 0.045 * dt;
+      bgX += speed * dt;
+      phase += speed * 0.04 * dt;
       if (!onGround) {
         y += vy * dt; vy -= 0.62 * dt;
-        if (y <= 0) { y = 0; vy = 0; onGround = true; }
+        if (y <= 0) { y = 0; vy = 0; onGround = true; landT = 8; dust(6, 1); }
+      } else {
+        const sn = Math.sin(phase);
+        if ((sn > 0) !== (prevSin > 0)) dust(1, 0.5); // foulée
+        prevSin = sn;
       }
+      if (landT > 0) landT = Math.max(0, landT - dt);
       for (const o of obs) o.x -= speed * dt;
       obs = obs.filter((o) => o.x + o.w > -20);
       nextGap -= speed * dt;
       if (nextGap <= 0) spawn();
-      // collisions (hitbox un peu indulgente)
       const ax0 = AX - 9, ax1 = AX + 9, ay1 = GROUND - y, ay0 = ay1 - 60;
       for (const o of obs) {
         const ox0 = o.x + 4, ox1 = o.x + o.w - 4, oy0 = GROUND - o.h + 4;
@@ -95,130 +112,245 @@
     }
 
     function gameOver() {
-      state = 'over'; shake = 10; lastOver = performance.now();
+      state = 'over'; shake = 10; lastOver = performance.now(); sparks();
       if (reps > best) { best = reps; try { localStorage.setItem('wm-wod-best', String(best)); } catch {} }
     }
 
-    // ---------- dessin ----------
-    function limb(x1: number, y1: number, x2: number, y2: number, w: number) {
-      ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    // ---------- dessin : personnage ----------
+    function seg(x1: number, y1: number, x2: number, y2: number, w: number, c: string) {
+      ctx.strokeStyle = c; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    }
+
+    function drawLeg(hx: number, hy: number, th: number, sh: number, far: boolean) {
+      const L1 = 15, L2 = 15;
+      const kx = hx + Math.sin(th) * L1, ky = hy + Math.cos(th) * L1;
+      let fx = kx + Math.sin(sh) * L2, fy = ky + Math.cos(sh) * L2;
+      const floor = GROUND - y;
+      if (fy > floor) fy = floor;
+      seg(hx, hy, kx, ky, 6.5, far ? SKIN_FAR : SKIN);
+      seg(kx, ky, fx, fy, 5.5, far ? SKIN_FAR : SKIN);
+      // bas du short sur la cuisse
+      seg(hx, hy, hx + Math.sin(th) * 10, hy + Math.cos(th) * 10, 9.5, far ? SHORTS_FAR : SHORTS);
+      // chaussure
+      ctx.fillStyle = far ? '#b8b2a6' : BONE;
+      ctx.beginPath(); ctx.ellipse(fx + 3.5, fy - 1.5, 6.5, 3.6, Math.sin(sh) * 0.3, 0, Math.PI * 2); ctx.fill();
+      if (!far) { ctx.fillStyle = RED; ctx.fillRect(fx + 1, fy - 2, 5, 1.6); }
+    }
+
+    function drawArm(sx: number, sy: number, a: number, flex: number, far: boolean) {
+      const L1 = 11, L2 = 10;
+      const ex = sx + Math.sin(a) * L1, ey = sy + Math.cos(a) * L1;
+      const fa = a + flex;
+      const hx = ex + Math.sin(fa) * L2, hy = ey + Math.cos(fa) * L2;
+      seg(sx, sy, ex, ey, 5.4, far ? SKIN_FAR : SKIN);
+      seg(ex, ey, hx, hy, 4.8, far ? SKIN_FAR : SKIN);
+      ctx.fillStyle = far ? SKIN_FAR : SKIN; ctx.beginPath(); ctx.arc(hx, hy, 3, 0, Math.PI * 2); ctx.fill();
+      // débardeur : épaule
+      seg(sx, sy - 1, sx + Math.sin(a) * 4, sy - 1 + Math.cos(a) * 4, 7, far ? TANK_FAR : TANK);
     }
 
     function athlete() {
-      const hipY = GROUND - 28 - y, shY = hipY - 22, headY = shY - 12;
-      ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = BONE; ctx.fillStyle = BONE;
-      const air = !onGround && state === 'run';
-      const dead = state === 'over';
-      const s = Math.sin(phase), c = Math.cos(phase);
-      // jambes
-      const leg = (ang: number, back: boolean) => {
-        const thigh = 15, shin = 15;
-        const kx = AX + Math.sin(ang) * thigh, ky = hipY + Math.cos(ang) * thigh;
-        const bend = back ? ang - 1.1 : ang + 0.5;
-        const fx = kx + Math.sin(bend) * shin, fy = Math.min(GROUND - y, ky + Math.cos(bend) * shin);
-        ctx.strokeStyle = back ? SLATE : BONE;
-        limb(AX, hipY, kx, ky, 7); limb(kx, ky, fx, fy, 6);
-      };
-      if (air) { leg(0.9, true); leg(-0.3, false); }
-      else if (dead) { leg(0.3, false); leg(-0.3, true); }
-      else { leg(s * 0.95, s < 0); leg(-s * 0.95, s >= 0); }
-      // bras
-      const arm = (ang: number, back: boolean) => {
-        const ex = AX + Math.sin(ang) * 12, ey = shY + 4 + Math.cos(ang) * 12;
-        const hx = ex + Math.sin(ang - 1.1) * 11, hy = ey + Math.cos(ang - 1.1) * 11 * 0.6;
-        ctx.strokeStyle = back ? SLATE : BONE;
-        limb(AX, shY + 2, ex, ey, 5); limb(ex, ey, hx, hy, 5);
-      };
-      if (air) { arm(-2.3, true); arm(-2.7, false); }
-      else if (dead) { arm(0.6, false); arm(-0.6, true); }
-      else { arm(c * 0.9, c < 0); arm(-c * 0.9, c >= 0); }
-      // tronc (légère inclinaison vers l'avant)
-      ctx.strokeStyle = BONE; limb(AX, hipY, AX + 3, shY, 11);
-      // tête + bandeau
-      ctx.beginPath(); ctx.arc(AX + 4, headY, 8, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = RED; limb(AX - 3, headY - 3, AX + 11, headY - 3, 3.5);
+      ctx.save();
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      const dead = state === 'over', air = !onGround && state === 'run', run = state === 'run' && onGround;
+      // chute en arrière à la défaite
+      if (dead) {
+        const t = Math.min(1, deadT / 18);
+        ctx.translate(AX, GROUND); ctx.rotate(-1.35 * t * t); ctx.translate(-AX, -GROUND);
+      }
+      // écrasement à la réception
+      const sq = (landT / 8) * 0.13;
+      ctx.translate(AX, GROUND - y); ctx.scale(1 + sq * 0.6, 1 - sq); ctx.translate(-AX, -(GROUND - y));
+
+      const idle = state === 'idle';
+      const breathe = idle ? Math.sin(idleT * 0.06) * 0.8 : 0;
+      const bob = run ? Math.abs(Math.cos(phase)) * 2.4 : 0;
+      const hipX = AX, hipY = GROUND - y - 28 + bob * 0.6 + breathe * 0.3;
+      const lean = air ? 0.1 : dead ? -0.1 : idle ? 0.03 : 0.2;
+      const shX = hipX + Math.sin(lean) * 22, shY = hipY - Math.cos(lean) * 22;
+      const hdX = shX + Math.sin(lean) * 11, hdY = shY - Math.cos(lean) * 11 - 1;
+
+      let fl: [number, number], bl: [number, number], fa: [number, number], ba: [number, number];
+      if (air) {
+        fl = [1.15, 0.15]; bl = [-0.55, -1.7];
+        fa = [-2.3, 0.4]; ba = [-1.2, 1.2];
+      } else if (dead || idle) {
+        fl = [0.08, 0.08]; bl = [-0.1, -0.1];
+        fa = [0.12, 0.2]; ba = [-0.1, 0.2];
+      } else {
+        const s = Math.sin(phase), c = Math.cos(phase);
+        const legPose = (sn: number, cs: number): [number, number] => { const th = 0.85 * sn + 0.05; return [th, th - (0.15 + 1.15 * Math.max(0, cs))]; };
+        fl = legPose(s, c); bl = legPose(-s, -c);
+        // bras opposés aux jambes, coudes pliés à ~90°
+        fa = [-0.95 * s - 0.05, 1.55]; ba = [0.95 * s - 0.05, 1.55];
+      }
+      // ordre : jambe/bras arrière → tronc → jambe/bras avant → tête
+      drawLeg(hipX, hipY, bl[0], bl[1], true);
+      drawArm(shX, shY + 2, ba[0], ba[1], true);
+      drawLeg(hipX, hipY, fl[0], fl[1], false);
+      // tronc : débardeur + short
+      seg(hipX, hipY + 1, shX, shY + 1, 12.5, TANK);
+      seg(hipX - 0.5, hipY + 3, hipX + 0.5, hipY - 1, 12.5, SHORTS);
+      ctx.fillStyle = BONE; ctx.font = '900 7px Archivo, sans-serif'; ctx.textAlign = 'center';
+      ctx.save(); ctx.translate((hipX + shX) / 2 + 0.5, (hipY + shY) / 2 + 4); ctx.rotate(lean); ctx.fillText('WM', 0, 0); ctx.restore();
+      drawArm(shX, shY + 2, fa[0], fa[1], false);
+      // cou + tête
+      seg(shX, shY - 1, hdX, hdY + 5, 5, SKIN);
+      ctx.fillStyle = SKIN; ctx.beginPath(); ctx.arc(hdX, hdY, 7.4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = HAIR; ctx.beginPath(); ctx.arc(hdX - 0.5, hdY - 0.5, 7.8, Math.PI * 0.78, Math.PI * 1.95); ctx.fill();
+      seg(hdX - 7, hdY - 2.2, hdX + 7, hdY - 3.4, 3.2, BONE); // bandeau
+      ctx.fillStyle = HAIR; ctx.beginPath(); ctx.arc(hdX + 3.6, hdY + 0.8, 1.1, 0, Math.PI * 2); ctx.fill(); // oeil
+      if (dead) { ctx.strokeStyle = HAIR; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(hdX + 2, hdY - 0.2); ctx.lineTo(hdX + 5, hdY + 2); ctx.moveTo(hdX + 5, hdY - 0.2); ctx.lineTo(hdX + 2, hdY + 2); ctx.stroke(); }
+      ctx.restore();
     }
 
+    // ---------- dessin : obstacles ----------
     function obstacle(o: Obs) {
       const top = GROUND - o.h;
       ctx.lineJoin = 'round'; ctx.lineCap = 'round';
       if (o.kind === 'box' || o.kind === 'box2') {
-        ctx.fillStyle = '#cfc8b8'; ctx.fillRect(o.x, top, o.w, o.h);
-        ctx.strokeStyle = '#8c8574'; ctx.lineWidth = 2; ctx.strokeRect(o.x + 1, top + 1, o.w - 2, o.h - 2);
-        ctx.beginPath(); ctx.moveTo(o.x + 1, top + o.h * 0.5); ctx.lineTo(o.x + o.w - 1, top + o.h * 0.5); ctx.stroke();
-        ctx.fillStyle = '#26395a'; ctx.fillRect(o.x + o.w / 2 - 10, top + 8, 20, 4); // poignée
+        ctx.fillStyle = '#d9cfb6'; ctx.beginPath(); ctx.roundRect(o.x, top, o.w, o.h, 3); ctx.fill();
+        ctx.fillStyle = '#efe6cd'; ctx.fillRect(o.x, top, o.w, 5);            // dessus éclairé
+        ctx.fillStyle = 'rgba(13,26,45,.18)'; ctx.fillRect(o.x, GROUND - 6, o.w, 6); // ombre bas
+        ctx.strokeStyle = '#a89c7e'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.roundRect(o.x + .75, top + .75, o.w - 1.5, o.h - 1.5, 3); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(o.x, top + o.h * .5); ctx.lineTo(o.x + o.w, top + o.h * .5); ctx.stroke();
+        ctx.fillStyle = '#26395a';
+        const cells = o.kind === 'box2' ? 2 : 1;
+        for (let i = 0; i < cells; i++) { const cx = o.x + (o.w / cells) * (i + .5); ctx.beginPath(); ctx.roundRect(cx - 9, top + 11, 18, 5, 2.5); ctx.fill(); }
+        ctx.fillStyle = RED; ctx.font = '900 9px Archivo, sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText('WM', o.x + o.w / 2, top + o.h - 8);
       } else if (o.kind === 'plates') {
-        ctx.fillStyle = SLATE; ctx.fillRect(o.x + o.w / 2 - 2, top - 2, 4, o.h + 2); // barre
-        const cols = ['#efebe3', '#9aa6b8', '#efebe3'];
+        // barre verticale + 3 disques de bumper empilés
+        ctx.fillStyle = SLATE; ctx.fillRect(o.x + o.w / 2 - 2, top - 3, 4, o.h + 3);
+        const cols = [RED, BONE, SLATE];
         for (let i = 0; i < 3; i++) {
-          ctx.fillStyle = cols[i];
-          ctx.beginPath(); ctx.roundRect(o.x, GROUND - 18 * (i + 1) + 1, o.w, 16, 4); ctx.fill();
+          const yy = GROUND - 19 * (i + 1) + 1;
+          ctx.fillStyle = '#0a1422'; ctx.beginPath(); ctx.roundRect(o.x - 1, yy - 1, o.w + 2, 18, 5); ctx.fill();
+          ctx.fillStyle = cols[i]; ctx.beginPath(); ctx.roundRect(o.x, yy, o.w, 16, 4); ctx.fill();
+          ctx.fillStyle = 'rgba(255,255,255,.28)'; ctx.fillRect(o.x + 3, yy + 2, o.w - 6, 2);
+          ctx.fillStyle = 'rgba(13,26,45,.5)'; ctx.beginPath(); ctx.arc(o.x + o.w / 2, yy + 8, 2.6, 0, Math.PI * 2); ctx.fill();
         }
       } else {
         // kettlebell
-        ctx.strokeStyle = SLATE; ctx.lineWidth = 5;
-        ctx.beginPath(); ctx.arc(o.x + o.w / 2, top + 9, 9, Math.PI, 0); ctx.stroke();
-        ctx.fillStyle = '#efebe3';
-        ctx.beginPath(); ctx.arc(o.x + o.w / 2, GROUND - 14, 15, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#26395a'; ctx.font = '800 12px Archivo, sans-serif'; ctx.textAlign = 'center';
-        ctx.fillText('16', o.x + o.w / 2, GROUND - 10);
+        const cx = o.x + o.w / 2;
+        ctx.strokeStyle = '#8795ad'; ctx.lineWidth = 6;
+        ctx.beginPath(); ctx.arc(cx, top + 14, 11, Math.PI, Math.PI * 2); ctx.stroke();
+        const g = ctx.createRadialGradient(cx - 5, GROUND - 22, 2, cx, GROUND - 15, 18);
+        g.addColorStop(0, '#c4cddb'); g.addColorStop(1, '#6b7a92');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, GROUND - 15, 15.5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#0d1a2d'; ctx.font = '800 11px Archivo, sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText('16', cx, GROUND - 11);
       }
     }
 
+    // ---------- dessin : décor ----------
     function background() {
-      ctx.fillStyle = '#112238'; ctx.fillRect(0, 0, W, H);
-      // rigs en silhouette (parallaxe)
-      ctx.fillStyle = 'rgba(255,255,255,.05)';
-      for (let i = -1; i < Math.ceil(W / 400) + 1; i++) {
-        const x = i * 400 - bgX;
-        ctx.fillRect(x + 40, 40, 8, GROUND - 40); ctx.fillRect(x + 190, 40, 8, GROUND - 40);
-        ctx.fillRect(x + 30, 40, 178, 8);
-        ctx.fillRect(x + 260, 80, 6, GROUND - 80); ctx.fillRect(x + 330, 80, 6, GROUND - 80); ctx.fillRect(x + 255, 80, 86, 6);
+      const sky = ctx.createLinearGradient(0, 0, 0, GROUND);
+      sky.addColorStop(0, '#0e1d33'); sky.addColorStop(1, '#183049');
+      ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
+
+      // lettrage mural en contour, très lent
+      ctx.save();
+      ctx.font = '900 120px "Big Shoulders Display", Archivo, sans-serif'; ctx.textAlign = 'left';
+      ctx.strokeStyle = 'rgba(255,255,255,.055)'; ctx.lineWidth = 1.5;
+      const wx = -((bgX * 0.08) % 760);
+      for (let i = 0; i < 3; i++) ctx.strokeText('WAR MACHINE', wx + i * 760, 150);
+      ctx.restore();
+
+      // barres de néon au plafond
+      ctx.fillStyle = 'rgba(239,235,227,.10)';
+      for (let i = -1; i < W / 260 + 2; i++) { const x = i * 260 - ((bgX * 0.12) % 260); ctx.fillRect(x + 20, 10, 110, 3); }
+
+      // rigs : poteaux, barre, anneaux, corde (parallaxe)
+      const off = (bgX * 0.35) % 420;
+      for (let i = -1; i < Math.ceil(W / 420) + 1; i++) {
+        const x = i * 420 - off;
+        ctx.fillStyle = 'rgba(255,255,255,.07)';
+        ctx.fillRect(x + 40, 34, 8, GROUND - 34); ctx.fillRect(x + 200, 34, 8, GROUND - 34); ctx.fillRect(x + 34, 34, 180, 7);
+        ctx.strokeStyle = 'rgba(255,255,255,.10)'; ctx.lineWidth = 2;
+        for (const rx of [94, 154]) { ctx.beginPath(); ctx.moveTo(x + rx, 41); ctx.lineTo(x + rx, 98); ctx.stroke(); ctx.beginPath(); ctx.arc(x + rx, 106, 8, 0, Math.PI * 2); ctx.stroke(); }
+        ctx.fillStyle = 'rgba(255,255,255,.07)';
+        ctx.fillRect(x + 300, 80, 6, GROUND - 80); ctx.fillRect(x + 372, 80, 6, GROUND - 80); ctx.fillRect(x + 294, 80, 90, 6);
+        ctx.strokeStyle = 'rgba(255,255,255,.09)'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(x + 336, 86); ctx.lineTo(x + 336, GROUND - 30); ctx.stroke();
       }
-      // sol
-      ctx.fillStyle = '#0d1a2d'; ctx.fillRect(0, GROUND, W, H - GROUND);
+
+      // sol caoutchouc
+      const fl = ctx.createLinearGradient(0, GROUND, 0, H);
+      fl.addColorStop(0, '#1d3354'); fl.addColorStop(1, '#0a1524');
+      ctx.fillStyle = fl; ctx.fillRect(0, GROUND, W, H - GROUND);
       ctx.fillStyle = BONE; ctx.fillRect(0, GROUND, W, 2);
-      ctx.fillStyle = 'rgba(239,235,227,.25)';
-      const off = (dist % 60);
-      for (let x = -off; x < W; x += 60) ctx.fillRect(x, GROUND + 14, 18, 2);
+      ctx.fillStyle = 'rgba(239,235,227,.18)';
+      const fo = bgX % 64;
+      for (let x = -fo; x < W; x += 64) ctx.fillRect(x, GROUND + 16, 22, 2);
+      ctx.fillStyle = 'rgba(255,255,255,.04)';
+      for (let x = -((bgX * 1.0) % 120); x < W; x += 120) ctx.fillRect(x, GROUND + 3, 1, H - GROUND);
+
+      // vignette
+      const v = ctx.createRadialGradient(W / 2, H / 2, H * 0.4, W / 2, H / 2, W * 0.65);
+      v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,.35)');
+      ctx.fillStyle = v; ctx.fillRect(0, 0, W, H);
+    }
+
+    function shadow() {
+      const k = Math.max(0.35, 1 - y / 170);
+      ctx.fillStyle = `rgba(0,0,0,${0.35 * k})`;
+      ctx.beginPath(); ctx.ellipse(AX + 2, GROUND + 4, 17 * k, 3.4 * k, 0, 0, Math.PI * 2); ctx.fill();
+    }
+
+    function particles(dt: number) {
+      for (const p of parts) {
+        p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 0.05 * dt; p.life -= 0.035 * dt;
+        ctx.globalAlpha = Math.max(0, p.life) * 0.7; ctx.fillStyle = p.c;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (0.6 + p.life * 0.4), 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      parts = parts.filter((p) => p.life > 0);
     }
 
     function hud() {
       ctx.textAlign = 'right'; ctx.fillStyle = SLATE; ctx.font = '600 12px Archivo, sans-serif';
       ctx.fillText('RECORD  ' + String(best).padStart(3, '0'), W - 18, 28);
-      ctx.fillStyle = BONE; ctx.font = '900 30px "Big Shoulders Display", Archivo, sans-serif';
-      ctx.fillText(String(reps).padStart(3, '0') + ' REPS', W - 18, 58);
+      ctx.fillStyle = BONE; ctx.font = '900 32px "Big Shoulders Display", Archivo, sans-serif';
+      ctx.fillText(String(reps).padStart(3, '0') + ' REPS', W - 18, 60);
     }
 
     function banner(title: string, sub: string) {
-      ctx.fillStyle = 'rgba(13,26,45,.72)'; ctx.fillRect(0, 0, W, GROUND);
+      ctx.fillStyle = 'rgba(13,26,45,.68)'; ctx.fillRect(0, 0, W, GROUND);
       ctx.textAlign = 'center'; ctx.fillStyle = BONE;
-      ctx.font = `900 ${W < 480 ? 44 : 64}px "Big Shoulders Display", Archivo, sans-serif`;
-      ctx.fillText(title, W / 2, 92);
+      ctx.font = `900 ${W < 480 ? 46 : 66}px "Big Shoulders Display", Archivo, sans-serif`;
+      ctx.fillText(title, W / 2 + (W < 520 ? 0 : 40), 90);
       ctx.fillStyle = SLATE; ctx.font = '500 15px Archivo, sans-serif';
-      ctx.fillText(sub, W / 2, 124);
+      ctx.fillText(sub, W / 2 + (W < 520 ? 0 : 40), 122);
     }
 
+    let lastDt = 1;
     function draw() {
       ctx.save();
       if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
       background();
+      if (state === 'idle') banner('PRÊT POUR LE WOD ?', 'Espace ou toucher pour lancer');
+      shadow();
       obs.forEach(obstacle);
       athlete();
+      particles(lastDt);
       hud();
-      if (state === 'idle') banner('PRÊT POUR LE WOD ?', 'Appuie sur espace ou touche pour lancer');
-      if (state === 'over') banner('NO REP.', `${reps} reps · espace ou touche pour rejouer`);
+      if (state === 'over') banner('NO REP.', `${reps} reps · espace ou toucher pour rejouer`);
       ctx.restore();
     }
 
     function loop(now: number, fresh = false) {
       cancelAnimationFrame(raf);
       if (fresh) last = now;
-      const dt = Math.min(2.2, (now - last) / 16.667); last = now;
+      const dt = Math.min(2.2, (now - last) / 16.667); last = now; lastDt = dt;
+      idleT += dt;
       if (state === 'run') update(dt);
+      if (state === 'over') deadT += dt;
       if (shake > 0) shake = Math.max(0, shake - 0.8 * dt);
       draw();
-      if ((state === 'run' || shake > 0) && visible && !document.hidden) raf = requestAnimationFrame((t) => loop(t));
+      const animating = state === 'run' || shake > 0 || parts.length > 0 || (state === 'over' && deadT < 20) || state === 'idle';
+      if (animating && visible && !document.hidden) raf = requestAnimationFrame((t) => loop(t));
     }
 
     // ---------- entrées ----------
@@ -235,13 +367,13 @@
 
     new IntersectionObserver((es) => {
       visible = es[0].isIntersecting;
-      if (visible && state === 'run') loop(performance.now(), true);
+      if (visible) loop(performance.now(), true);
     }, { threshold: 0.2 }).observe(canvas);
-    document.addEventListener('visibilitychange', () => { if (!document.hidden && state === 'run') loop(performance.now(), true); });
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) loop(performance.now(), true); });
     window.addEventListener('resize', resize);
 
     resize();
-    (document.fonts?.ready ?? Promise.resolve()).then(() => { if (state !== 'run') draw(); });
+    (document.fonts?.ready ?? Promise.resolve()).then(() => draw());
   }
 </script>
 
