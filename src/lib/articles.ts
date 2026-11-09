@@ -16,4 +16,4 @@ export function pickUne(list: ArticleEntry[]): ArticleEntry | undefined {
 export const formatDate = (d: Date) =>
   d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
 
-export const cover = (a: ArticleEntry) => a.data.image || '/images/wod.jpg';
+export const cover = (a: ArticleEntry) => a.data.image || '/images/wod.webp';

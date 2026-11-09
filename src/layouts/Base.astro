@@ -1,18 +1,20 @@
 ---
-import '@fontsource/big-shoulders-display/800';
-import '@fontsource/big-shoulders-display/900';
-import '@fontsource/archivo/400';
-import '@fontsource/archivo/500';
-import '@fontsource/archivo/600';
-import '@fontsource/archivo/700';
+import '@fontsource/big-shoulders-display/latin-800';
+import '@fontsource/big-shoulders-display/latin-900';
+import '@fontsource/archivo/latin-400';
+import '@fontsource/archivo/latin-500';
+import '@fontsource/archivo/latin-600';
+import '@fontsource/archivo/latin-700';
+import bsd900 from '@fontsource/big-shoulders-display/files/big-shoulders-display-latin-900-normal.woff2?url';
+import arch400 from '@fontsource/archivo/files/archivo-latin-400-normal.woff2?url';
 import '../styles/global.css';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import CtaFinal from '../components/CtaFinal.astro';
 import CookieBanner from '../components/CookieBanner.astro';
 
-interface Props { title: string; description?: string; cta?: boolean }
-const { title, description = 'WM Athletics : Hyrox et cross-training à Nantes. Deux salles, Chantenay et Haute-Goulaine, plus de 400 membres et des coachs passionnés. Séance d’essai offerte.', cta = true } = Astro.props;
+interface Props { title: string; description?: string; cta?: boolean; preload?: string }
+const { preload, title, description = 'WM Athletics : Hyrox et cross-training à Nantes. Deux salles, Chantenay et Haute-Goulaine, plus de 400 membres et des coachs passionnés. Séance d’essai offerte.', cta = true } = Astro.props;
 const fullTitle = title.includes('WM Athletics') ? title : `${title} · WM Athletics`;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 ---
@@ -31,6 +33,9 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <meta property="og:image" content={new URL('/images/wod.jpg', Astro.site)} />
     <meta name="theme-color" content="#0d1a2d" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preload" href={bsd900} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={arch400} as="font" type="font/woff2" crossorigin />
+    {preload && <link rel="preload" href={preload} as="image" fetchpriority="high" />}
   </head>
   <body>
     <a href="#contenu" class="sr-only">Aller au contenu</a>
@@ -43,6 +48,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <CookieBanner />
     <script>
       import '../scripts/reveal.ts';
+      import '../scripts/lazybg.ts';
     </script>
   </body>
 </html>

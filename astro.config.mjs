@@ -8,6 +8,8 @@ import vercel from '@astrojs/vercel';
 export default defineConfig({
   site: 'https://warmachineathletics.fr',
   trailingSlash: 'ignore',
+  // Précharge les pages liées quand elles entrent dans l'écran : navigation quasi instantanée.
+  prefetch: { prefetchAll: true, defaultStrategy: 'viewport' },
   // Pages statiques ; seule l'admin du blog (/keystatic) tourne côté serveur sur Vercel.
   adapter: vercel(),
   integrations: [react(), markdoc(), keystatic()],

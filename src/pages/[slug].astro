@@ -46,7 +46,7 @@ const others = list.filter((x) => x.id !== a.id).slice(0, 3);
         <div class="grid grid-3">
           {others.map((o) => (
             <a class="post" href={`/${o.id}/`}>
-              <div class="photo post__img" style={`background-image:url('${cover(o)}')`}></div>
+              <div class="photo post__img" data-bg={`url('${cover(o)}')`}></div>
               <h3 class="display post__title">{o.data.titre}</h3>
               <span class="post__more"><Icon name="lecture" />Lire l'article</span>
             </a>

@@ -39,7 +39,7 @@ const notes = salle === 'wm1'
         ))}
       </div>
       <div class="grid grid-3 gallery">
-        {s.galerie.map((g) => <div class="photo gallery__img" style={`background-image:url('${g}')`}></div>)}
+        {s.galerie.map((g) => <div class="photo gallery__img" data-bg={`url('${g}')`}></div>)}
       </div>
     </div>
   </section>

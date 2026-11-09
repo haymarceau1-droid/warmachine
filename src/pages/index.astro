@@ -12,7 +12,7 @@ import { getArticles, cover } from '../lib/articles';
 const derniers = (await getArticles()).slice(0, 3);
 const salles = [SALLES.wm1, SALLES.wm2];
 ---
-<Base title="WM Athletics · Hyrox & cross-training à Nantes">
+<Base title="WM Athletics · Hyrox & cross-training à Nantes" preload="/images/wod.webp">
   <section class="hero">
     <div class="hero__bg" aria-hidden="true"></div>
     <a href={ROUTES.essai} class="hero__badge display">1re séance<br />offerte [+]</a>
@@ -63,7 +63,7 @@ const salles = [SALLES.wm1, SALLES.wm2];
       <div class="grid grid-2">
         {salles.map((s) => (
           <article class="salle">
-            <div class="salle__photo photo" style={`background-image:linear-gradient(180deg,rgba(13,26,45,0) 60%,rgba(13,26,45,.35)),url('${s.photo}')`}><span class="tag-sq display">{s.code}</span></div>
+            <div class="salle__photo photo" data-bg={`linear-gradient(180deg,rgba(13,26,45,0) 60%,rgba(13,26,45,.35)),url('${s.photo}')`}><span class="tag-sq display">{s.code}</span></div>
             <div class="salle__body">
               <h3 class="display" style="font-size:clamp(44px,4.5vw,64px)">WM {s.nom}</h3>
               <p style="font-weight:600">{s.adresse}, {s.ville}</p>
@@ -104,7 +104,7 @@ const salles = [SALLES.wm1, SALLES.wm2];
       <div class="grid grid-3">
         {derniers.map((a) => (
           <a class="post" href={`/${a.id}/`}>
-            <div class="post__img photo" style={`background-image:url('${cover(a)}')`}></div>
+            <div class="post__img photo" data-bg={`url('${cover(a)}')`}></div>
             <p class="eyebrow">{a.data.categorie}</p>
             <h3 class="display post__title">{a.data.titre}</h3>
             <span class="post__more"><Icon name="lecture" />Lire l'article</span>
@@ -121,7 +121,7 @@ const salles = [SALLES.wm1, SALLES.wm2];
   .hero { position: relative; min-height: min(100svh, 980px); display: flex; align-items: flex-end; overflow: hidden; }
   .hero__bg {
     position: absolute; inset: -8% 0; /* plus grand que le hero : aucun bord visible pendant la parallaxe */
-    background: url('/images/wod.jpg') center / cover var(--navy-600);
+    background: url('/images/wod.webp') center / cover var(--navy-600);
     filter: saturate(.7) contrast(1.1);
   }
   /* Dégradés fixes, indépendants de la photo */
