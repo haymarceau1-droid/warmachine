@@ -1,7 +1,8 @@
 ---
 import Icon from './Icon.astro';
-import { NAV, ROUTES } from '../data/site';
+import { NAV, ROUTES, HORAIRES } from '../data/site';
 const path = Astro.url.pathname;
+const horaires = JSON.stringify(HORAIRES);
 ---
 <header class="nav-wrap">
   <nav class="nav" aria-label="Navigation principale">
@@ -13,12 +14,18 @@ const path = Astro.url.pathname;
         <li><a href={l.href} aria-current={path === l.href ? 'page' : undefined}>{l.label}</a></li>
       ))}
     </ul>
+    <p class="statut statut--nav" data-statut data-horaires={horaires} hidden aria-live="polite">
+      <span class="statut__dot" aria-hidden="true"></span><span class="statut__txt"></span>
+    </p>
     <a href={ROUTES.essai} class="btn btn--primary nav__cta"><Icon name="calendrier" /><span>Essai gratuit</span></a>
     <button class="nav__burger" type="button" aria-expanded="false" aria-controls="menu-mobile" aria-label="Ouvrir le menu">
       <span class="burger" aria-hidden="true"><span></span><span></span></span>
     </button>
   </nav>
   <div class="menu-mobile" id="menu-mobile" hidden>
+    <p class="statut statut--menu" data-statut data-horaires={horaires} hidden>
+      <span class="statut__dot" aria-hidden="true"></span><span class="statut__txt"></span>
+    </p>
     <ul>
       {NAV.map((l) => <li><a href={l.href}>{l.label}</a></li>)}
       <li><a href={ROUTES.faq}>FAQ</a></li>
@@ -28,6 +35,50 @@ const path = Astro.url.pathname;
 </header>
 
 <script>
+  // Statut « ouvert / fermé » calculé à partir de HORAIRES (heure de Paris, indépendante du fuseau du visiteur)
+  const JOURS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+  const WD: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  const fmt = (m: number) => { const h = Math.floor(m / 60), mn = m % 60; return mn ? `${h}h${String(mn).padStart(2, '0')}` : `${h}h`; };
+  const toMin = (s: string) => { const [h, m] = s.split(':').map(Number); return h * 60 + m; };
+
+  function updateStatut() {
+    const nodes = document.querySelectorAll<HTMLElement>('[data-statut]');
+    if (!nodes.length) return;
+    const raw = JSON.parse(nodes[0].dataset.horaires || '[]') as [string, string][];
+    // Index 0 = lundi dans HORAIRES → on convertit en 0 = dimanche
+    const plages: Record<number, [number, number]> = {};
+    raw.forEach(([, h], i) => {
+      const [a, b] = h.split('–').map((x) => toMin(x.trim()));
+      plages[(i + 1) % 7] = [a, b];
+    });
+    const p = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Paris', weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date());
+    const get = (t: string) => p.find((x) => x.type === t)?.value ?? '0';
+    const day = WD[get('weekday')];
+    const now = Number(get('hour')) * 60 + Number(get('minute'));
+    const today = plages[day];
+    let open = false, text = '';
+    if (today && now >= today[0] && now < today[1]) {
+      open = true;
+      text = now >= today[1] - 60 ? `Ouvert · ferme à ${fmt(today[1])}` : `Ouvert · jusqu’à ${fmt(today[1])}`;
+    } else {
+      for (let i = 0; i < 8; i++) {
+        const d = (day + i) % 7, pl = plages[d];
+        if (!pl || (i === 0 && now >= pl[0])) continue;
+        const quand = i === 0 ? '' : i === 1 ? ' demain' : ` ${JOURS[d]}`;
+        text = `Fermé · ouvre${quand} à ${fmt(pl[0])}`;
+        break;
+      }
+    }
+    nodes.forEach((n) => {
+      n.classList.toggle('is-open', open);
+      const t = n.querySelector('.statut__txt');
+      if (t) t.textContent = text;
+      n.hidden = !text;
+    });
+  }
+  updateStatut();
+  setInterval(updateStatut, 60_000);
+
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && document.body.classList.contains('menu-open')) (document.querySelector('.nav__burger') as HTMLButtonElement)?.click(); });
   const btn = document.querySelector<HTMLButtonElement>('.nav__burger');
   const menu = document.getElementById('menu-mobile');
@@ -64,6 +115,17 @@ const path = Astro.url.pathname;
   }
   .nav__pill a:hover, .nav__pill a[aria-current='page'] { background: rgba(255, 255, 255, .1); }
   .nav__cta { padding: 13px 22px; }
+  .statut {
+    display: inline-flex; align-items: center; gap: 9px; white-space: nowrap;
+    font-family: var(--font-body); font-weight: 600; font-size: 13px; letter-spacing: .01em; color: var(--bone);
+  }
+  .statut__dot { width: 9px; height: 9px; border-radius: 50%; background: var(--slate); flex: none; }
+  .statut.is-open .statut__dot { background: #3ddc84; box-shadow: 0 0 0 0 rgba(61, 220, 132, .6); animation: statut-pulse 2.2s infinite; }
+  @keyframes statut-pulse { 70% { box-shadow: 0 0 0 8px rgba(61, 220, 132, 0); } 100% { box-shadow: 0 0 0 0 rgba(61, 220, 132, 0); } }
+  .statut--nav { padding: 0 4px; }
+  .statut--menu { margin-bottom: 16px; padding: 8px 14px; border-radius: 999px; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .12); }
+  @media (max-width: 1239px) { .statut--nav { display: none !important; } }
+  @media (prefers-reduced-motion: reduce) { .statut.is-open .statut__dot { animation: none; } }
   .nav__burger {
     display: none; width: 50px; height: 50px; align-items: center; justify-content: center; cursor: pointer;
     border-radius: 999px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18);
