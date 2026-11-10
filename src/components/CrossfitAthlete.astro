@@ -167,20 +167,16 @@
       const pts: V[] = [], rs: number[] = [], N = 12;
       for (let i = 0; i <= N; i++) { const t = i / N; pts.push(cr(a, a, b, c, t)); rs.push(rad(0, t)); }
       for (let i = 1; i <= N; i++) { const t = i / N; pts.push(cr(a, b, c, c, t)); rs.push(rad(1, t)); }
-      const L: V[] = [], R: V[] = [];
+      // cercles + trapèzes remplis séparément : aucun trou ni arc parasite, même sur les segments courts
+      ctx.fillStyle = fill;
       for (let i = 0; i < pts.length; i++) {
-        const p0 = pts[Math.max(0, i - 1)], p1 = pts[Math.min(pts.length - 1, i + 1)];
-        let dx = p1[0] - p0[0], dy = p1[1] - p0[1]; const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l;
-        L.push([pts[i][0] - dy * rs[i], pts[i][1] + dx * rs[i]]); R.push([pts[i][0] + dy * rs[i], pts[i][1] - dx * rs[i]]);
+        ctx.beginPath(); ctx.arc(pts[i][0], pts[i][1], rs[i], 0, Math.PI * 2); ctx.fill();
+        if (i === 0) continue;
+        const p0 = pts[i - 1], p1 = pts[i], dx = p1[0] - p0[0], dy = p1[1] - p0[1], l = Math.hypot(dx, dy) || 1, nx = -dy / l, ny = dx / l;
+        ctx.beginPath();
+        ctx.moveTo(p0[0] + nx * rs[i - 1], p0[1] + ny * rs[i - 1]); ctx.lineTo(p1[0] + nx * rs[i], p1[1] + ny * rs[i]);
+        ctx.lineTo(p1[0] - nx * rs[i], p1[1] - ny * rs[i]); ctx.lineTo(p0[0] - nx * rs[i - 1], p0[1] - ny * rs[i - 1]); ctx.closePath(); ctx.fill();
       }
-      ctx.fillStyle = fill; ctx.beginPath(); ctx.moveTo(L[0][0], L[0][1]);
-      for (let i = 1; i < L.length; i++) ctx.lineTo(L[i][0], L[i][1]);
-      const e = pts[pts.length - 1], ea = Math.atan2(L[L.length - 1][1] - e[1], L[L.length - 1][0] - e[0]);
-      ctx.arc(e[0], e[1], rs[rs.length - 1], ea, ea + Math.PI, false);
-      for (let i = R.length - 1; i >= 0; i--) ctx.lineTo(R[i][0], R[i][1]);
-      const s0 = pts[0], sa = Math.atan2(R[0][1] - s0[1], R[0][0] - s0[0]);
-      ctx.arc(s0[0], s0[1], rs[0], sa, sa + Math.PI, false);
-      ctx.closePath(); ctx.fill();
     }
     function chain(pts: [V, V, number, number][], fill: string) {
       ctx.fillStyle = OUT; for (const [a, b, r1, r2] of pts) capFill(a, b, r1, r2, 0.9);

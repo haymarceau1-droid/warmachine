@@ -12,7 +12,7 @@
     const NAVY = '#0d1a2d';
     const LW = 116, LH = 84, G = LH, OX = 52;        // taille logique ; les pieds touchent le bas du canvas
     const L1 = 17, L2 = 17, A1 = 11, A2 = 10, TORSO = 22;
-    const V = 212, STRIDE = 83.3;                    // vitesse de sprint (unités/s) ; distance d'un cycle complet (2 foulées)
+    const V = 175, STRIDE = 108;                    // vitesse de sprint (unités/s) ; distance d'un cycle complet (2 foulées)
     const PAUSE = 1.5;
     let k = 0.8, dpr = 1;
     type V2 = [number, number];
@@ -60,12 +60,12 @@
 
     // course de sprint : buste penché, foulée longue, genoux hauts, bras énergiques. φ est déduit de la distance parcourue, donc le pied d'appui ne glisse jamais.
     function foot(p: number): V2 {
-      if (p < 0.36) return [lerp(15, -15, p / 0.36), 0];
-      const s = (p - 0.36) / 0.64;
-      return [lerp(-15, 18, sm(s)), 20 * Math.sin(Math.PI * Math.pow(s, 0.85))];
+      if (p < 0.24) return [lerp(13, -13, p / 0.24), 0];
+      const s = (p - 0.24) / 0.76;
+      return [lerp(-13, 17, sm(s)), 18 * Math.sin(Math.PI * Math.pow(s, 0.85))];
     }
     function runPose(phi: number): Pose {
-      const hip: V2 = [OX, G - 29 + 1.5 * Math.cos(4 * Math.PI * (phi - 0.18))], lean = 0.3, sh = shoulderOf(hip, lean);
+      const hip: V2 = [OX, G - 30.5 + 2.4 * Math.cos(4 * Math.PI * (phi - 0.12))], lean = 0.26, sh = shoulderOf(hip, lean);
       const feet = [0, 0.5].map((o) => { const [fx, fy] = foot((phi + o) % 1); return [hip[0] + fx, FY - fy] as V2; }) as [V2, V2];
       const elb: V2[] = [], hands: V2[] = [];
       for (const sgn of [1, -1]) {
