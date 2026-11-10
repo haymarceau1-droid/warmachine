@@ -144,7 +144,7 @@
     }
 
     // ---------- dessin ----------
-    const OUT = 'rgba(13,26,45,.42)';
+    const OUT = 'rgba(0,0,0,0)'; // pas de contour : la silhouette reste nette
     type Part = { x: number; y: number; vx: number; vy: number; life: number; r: number; c: string };
     let parts: Part[] = [], trail: V[] = [], pony: V | null = null, ponyV: V = [0, 0], prevT = 0, prevFootAir: [boolean, boolean] = [false, false], sweatT = 0;
 
@@ -245,7 +245,6 @@
     }
     function drawBox() {
       const x = OX + BX, top = G - BH;
-      ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(x + BW / 2 + 4, G + 3.5, BW / 2 + 8, 3, 0, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = OUT; ctx.beginPath(); ctx.roundRect(x - 0.9, top - 0.9, BW + 1.8, BH + 1.8, 3.4); ctx.fill();
       const g = ctx.createLinearGradient(0, top, 0, G); g.addColorStop(0, '#eadfc4'); g.addColorStop(1, '#cbbf9f');
       ctx.fillStyle = g; ctx.beginPath(); ctx.roundRect(x, top, BW, BH, 2.5); ctx.fill();
@@ -299,11 +298,6 @@
       const hdS = spr(headSp, hdT, dt, 320, 24);
       const hd: V = [hdT[0] + Math.max(-3, Math.min(3, hdS[0] - hdT[0])), hdT[1] + Math.max(-3, Math.min(3, hdS[1] - hdT[1]))];
 
-      // ombre portée
-      const low = Math.max(feet[0][1], feet[1][1]), airH = Math.max(0, G - low), k2 = Math.max(0.35, 1 - airH / 55);
-      ctx.fillStyle = `rgba(0,0,0,${0.3 * k2})`;
-      ctx.beginPath(); ctx.ellipse(hip[0] - Math.sin(lean) * 5, G + 3.6, 19 * k2 + Math.abs(Math.sin(lean)) * 24, 3.2, 0, 0, Math.PI * 2); ctx.fill();
-
       // poussière à la réception
       const fy = [feet[0][1], feet[1][1]];
       for (let i = 0; i < 2; i++) {
@@ -322,7 +316,6 @@
       if (p.bell && bellScale > 0.02) {
         const bp: V = [OX + p.bell[0] + (hands[0][0] - handsT[0][0]), p.bell[1] + (hands[0][1] - handsT[0][1])];
         trail.push(bp); if (trail.length > 6) trail.shift();
-        for (let i = 0; i < trail.length - 1; i++) { ctx.globalAlpha = (i / trail.length) * 0.22 * bellScale; kettlebell(trail[i], bellScale * 0.95); }
         ctx.globalAlpha = 1; kettlebell(bp, bellScale);
       } else trail = [];
       if (sweaty > 0) { sweatT += dt; if (sweatT > 0.5 / sweaty) { sweatT = 0; parts.push({ x: hd[0] - 5, y: hd[1] - 4, vx: -0.5 - Math.random() * 0.6, vy: -0.9, life: 1, r: 1.5, c: '#8fb8e8' }); } }
@@ -364,6 +357,8 @@
       const effort = resting ? Math.sin(breathPh) > 0.2 : (w > 0.6 && it.kind !== 'swing') || (it.kind === 'swing' && w > 0.6 && u > 0.45 && u < 0.85);
       athlete(p, it.kind === 'swing' ? w : 0, effort, dt, (T % 3.7) < 0.13, resting ? 1.2 : 0.6 + 0.3 * rep);
       drawParts(dt);
+      // silhouette : tout ce qui est dessiné devient du même rouge que la section
+      ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'source-in'; ctx.fillStyle = RED; ctx.fillRect(0, 0, canvas!.width, canvas!.height); ctx.restore();
     }
 
     // ---------- cycle de vie ----------
