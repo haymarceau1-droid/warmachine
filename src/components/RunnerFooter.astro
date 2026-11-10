@@ -1,0 +1,127 @@
+---
+// Coureur qui traverse de gauche à droite le haut du pied de page (bord bas de la section rouge), en boucle.
+---
+<div class="runner" aria-hidden="true"><canvas class="runner__c"></canvas></div>
+
+<script>
+  const wrap = document.querySelector<HTMLElement>('.runner');
+  const canvas = wrap?.querySelector<HTMLCanvasElement>('canvas');
+  if (wrap && canvas) {
+    const ctx = canvas.getContext('2d')!;
+    const NAVY = '#0d1a2d';
+    const LW = 100, LH = 82, G = LH, OX = 50;      // taille logique ; les pieds touchent le bas du canvas
+    const L1 = 17, L2 = 17, A1 = 11, A2 = 10;
+    const TCY = 0.5, V = 140;                       // durée d'un cycle (2 foulées) ; vitesse au sol (unités/s) = glissement du pied d'appui
+    const PAUSE = 2.5;
+    let k = 0.8, dpr = 1;
+    type V2 = [number, number];
+
+    const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+    const sm = (t: number) => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); };
+
+    function ik(sx: number, sy: number, tx: number, ty: number, l1: number, l2: number): V2 {
+      const dx = tx - sx, dy = ty - sy, d = Math.hypot(dx, dy);
+      const dd = Math.min(Math.max(d, 0.001), l1 + l2 - 0.001), a = Math.atan2(dy, dx);
+      const b = Math.acos(Math.max(-1, Math.min(1, (l1 * l1 + dd * dd - l2 * l2) / (2 * l1 * dd))));
+      const c1: V2 = [sx + l1 * Math.cos(a + b), sy + l1 * Math.sin(a + b)];
+      const c2: V2 = [sx + l1 * Math.cos(a - b), sy + l1 * Math.sin(a - b)];
+      return c1[0] > c2[0] ? c1 : c2; // genou vers l'avant
+    }
+
+    // membre lisse hanche→genou→cheville, épaisseur continue, un seul remplissage
+    function limbFill(a: V2, b: V2, c: V2, rad: (seg: number, t: number) => number) {
+      const cr = (p0: V2, p1: V2, p2: V2, p3: V2, t: number): V2 => {
+        const t2 = t * t, t3 = t2 * t;
+        const f = (i: number) => 0.5 * ((2 * p1[i]) + (-p0[i] + p2[i]) * t + (2 * p0[i] - 5 * p1[i] + 4 * p2[i] - p3[i]) * t2 + (-p0[i] + 3 * p1[i] - 3 * p2[i] + p3[i]) * t3);
+        return [f(0), f(1)];
+      };
+      const pts: V2[] = [], rs: number[] = [], N = 10;
+      for (let i = 0; i <= N; i++) { const t = i / N; pts.push(cr(a, a, b, c, t)); rs.push(rad(0, t)); }
+      for (let i = 1; i <= N; i++) { const t = i / N; pts.push(cr(a, b, c, c, t)); rs.push(rad(1, t)); }
+      // cercles + trapèzes remplis séparément : pas de trous ni d'arcs parasites, même sur les segments courts
+      for (let i = 0; i < pts.length; i++) {
+        ctx.beginPath(); ctx.arc(pts[i][0], pts[i][1], rs[i], 0, Math.PI * 2); ctx.fill();
+        if (i === 0) continue;
+        const p0 = pts[i - 1], p1 = pts[i], dx = p1[0] - p0[0], dy = p1[1] - p0[1], l = Math.hypot(dx, dy) || 1, nx = -dy / l, ny = dx / l;
+        ctx.beginPath();
+        ctx.moveTo(p0[0] + nx * rs[i - 1], p0[1] + ny * rs[i - 1]); ctx.lineTo(p1[0] + nx * rs[i], p1[1] + ny * rs[i]);
+        ctx.lineTo(p1[0] - nx * rs[i], p1[1] - ny * rs[i]); ctx.lineTo(p0[0] - nx * rs[i - 1], p0[1] - ny * rs[i - 1]); ctx.closePath(); ctx.fill();
+      }
+    }
+
+    // position du pied (relative à la hanche) pour la phase p d'une jambe : appui 40 %, ramené ensuite en l'air
+    function foot(p: number): V2 {
+      if (p < 0.4) return [lerp(14, -14, p / 0.4), 0];
+      const s = (p - 0.4) / 0.6;
+      return [lerp(-14, 15, sm(s)), 16 * Math.sin(Math.PI * Math.pow(s, 0.85))];
+    }
+
+    function draw(phi: number) {
+      ctx.clearRect(0, 0, LW, LH);
+      ctx.fillStyle = NAVY;
+      const lean = 0.17;
+      const hx = OX, hy = G - 29.3 + 1.4 * Math.cos(4 * Math.PI * (phi - 0.2));
+      const sh: V2 = [hx + Math.sin(lean) * 22, hy - Math.cos(lean) * 22];
+
+      // jambes (en opposition de phase)
+      for (const off of [0, 0.5]) {
+        const [fx, fy] = foot((phi + off) % 1);
+        const ft: V2 = [hx + fx, G - fy - 1.6], hp: V2 = [hx, hy];
+        const kn = ik(hp[0], hp[1], ft[0], ft[1], L1, L2);
+        limbFill(hp, kn, ft, (sg, t) => sg === 0 ? lerp(5.4, 3.8, t) : lerp(3.8, 2.5, t) + 0.5 * Math.sin(Math.PI * t));
+        // chaussure : petit ovale orienté selon la hauteur du pied
+        ctx.beginPath(); ctx.ellipse(ft[0] + 2.4, ft[1] + 0.9, 4.6, 2.3, fy > 1 ? 0.35 : 0, 0, Math.PI * 2); ctx.fill();
+      }
+
+      // buste penché vers l'avant
+      limbFill([hx, hy], [lerp(hx, sh[0], 0.5), lerp(hy, sh[1], 0.5)], sh, (sg, t) => sg === 0 ? lerp(4.6, 5, t) : lerp(5, 5.6, t));
+
+      // bras en opposition : coude plié à ~90°
+      for (const [sgn, bend] of [[1, 1.45], [-1, 1.45]] as const) {
+        const a = sgn * -0.95 * Math.cos(2 * Math.PI * phi) + 0.1;
+        const el: V2 = [sh[0] + A1 * Math.sin(a), sh[1] + A1 * Math.cos(a)];
+        const f = a + bend;
+        const hd: V2 = [el[0] + A2 * Math.sin(f), el[1] + A2 * Math.cos(f)];
+        limbFill(sh, el, hd, (sg, t) => sg === 0 ? lerp(3.5, 2.9, t) : lerp(2.9, 2.4, t));
+        ctx.beginPath(); ctx.arc(hd[0], hd[1], 2.8, 0, Math.PI * 2); ctx.fill();
+      }
+
+      // cou + tête
+      const nk: V2 = [sh[0] + Math.sin(0.1) * 6, sh[1] - Math.cos(0.1) * 6], hd: V2 = [sh[0] + Math.sin(0.12) * 12.8, sh[1] - Math.cos(0.12) * 12.8];
+      limbFill(sh, nk, hd, () => 3);
+      ctx.beginPath(); ctx.arc(hd[0], hd[1], 6.8, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // ---------- boucle ----------
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let W = 0, clock = 0, last = 0, raf = 0, visible = false;
+    function place(t: number) {
+      const runDur = (W + LW * k) / (V * k), total = runDur + PAUSE, tt = t % total;
+      if (tt >= runDur) { canvas!.style.transform = `translateX(${W + 20}px)`; return; }
+      canvas!.style.transform = `translateX(${-LW * k + V * k * tt}px)`;
+      draw((tt / TCY) % 1);
+    }
+    function resize() {
+      k = innerWidth < 720 ? 0.42 : 0.8; dpr = Math.min(devicePixelRatio || 1, 2); W = wrap!.clientWidth;
+      canvas!.width = Math.round(LW * k * dpr); canvas!.height = Math.round(LH * k * dpr);
+      canvas!.style.width = LW * k + 'px'; canvas!.style.height = LH * k + 'px';
+      ctx.setTransform(dpr * k, 0, 0, dpr * k, 0, 0);
+      if (reduce) { canvas!.style.transform = `translateX(${W * 0.25}px)`; draw(0.1); } else place(clock);
+    }
+    const tick = (now: number) => {
+      clock += Math.min((now - last) / 1000, 0.1); last = now;
+      place(clock);
+      if (visible && !document.hidden) raf = requestAnimationFrame(tick);
+    };
+    const run = () => { cancelAnimationFrame(raf); if (reduce) return; last = performance.now(); raf = requestAnimationFrame(tick); };
+    new IntersectionObserver((es) => { visible = es[0].isIntersecting; if (visible) run(); }).observe(wrap);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && visible) run(); });
+    addEventListener('resize', resize);
+    resize();
+  }
+</script>
+
+<style>
+  .runner { position: absolute; left: 0; right: 0; bottom: -1px; overflow: hidden; pointer-events: none; z-index: 2; }
+  .runner__c { display: block; will-change: transform; }
+</style>
