@@ -36,7 +36,8 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="preload" href={bsd900} as="font" type="font/woff2" crossorigin />
     <link rel="preload" href={arch400} as="font" type="font/woff2" crossorigin />
-    {preload && <link rel="preload" href={preload} as="image" fetchpriority="high" />}
+    {preload && <link rel="preload" href={preload.replace(".webp", "-m.webp")} as="image" fetchpriority="high" media="(max-width: 900px)" />}
+    {preload && <link rel="preload" href={preload} as="image" fetchpriority="high" media="(min-width: 901px)" />}
   </head>
   <body>
     <a href="#contenu" class="sr-only">Aller au contenu</a>

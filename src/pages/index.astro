@@ -124,6 +124,7 @@ const salles = [SALLES.wm1, SALLES.wm2];
     background: url('/images/wod.webp') center / cover var(--navy-600);
     filter: saturate(.7) contrast(1.1);
   }
+  @media (max-width: 900px) { .hero__bg { background-image: url('/images/wod-m.webp'); } }
   /* Dégradés fixes, indépendants de la photo */
   .hero::after {
     content: ''; position: absolute; inset: 0; pointer-events: none;
