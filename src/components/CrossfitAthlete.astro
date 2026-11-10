@@ -10,7 +10,7 @@
     const BONE = '#efebe3', SLATE = '#9aa6b8', RED = '#d81d1d';
     const SKIN = '#e3b08a', SKIN_FAR = '#b98763', TANK = '#d81d1d', TANK_FAR = '#a31616', SHORTS = '#2d4570', SHORTS_FAR = '#1f3252', HAIR = '#1b2230';
 
-    const LW = 300, LH = 152, SINK = 7;      // taille logique ; SINK = bande qui déborde sur le rouge (ombre)
+    const LW = 320, LH = 152, SINK = 7;      // taille logique ; SINK = bande qui déborde sur le rouge (ombre)
     const G = LH - SINK;                      // ligne de sol (= bord du rouge)
     const OX = 110;                            // x de l'athlète
     const L1 = 15, L2 = 15, A1 = 11, A2 = 10, TORSO = 22;
@@ -302,7 +302,7 @@
       const hip: V = [OX + p.hip[0], p.hip[1]], lean = p.lean, sh = shoulderOf(hip, lean);
       const feet: [V, V] = [[OX + p.feet[0][0], p.feet[0][1]], [OX + p.feet[1][0], p.feet[1][1]]];
       const handsT: [V, V] = [[OX + p.hands[0][0], p.hands[0][1]], [OX + p.hands[1][0], p.hands[1][1]]];
-      const hdT: V = [sh[0] + Math.sin(lean) * 11.5, sh[1] - Math.cos(lean) * 11.5 - 1];
+      const hdT: V = [sh[0] + Math.sin(lean) * 9.4, sh[1] - Math.cos(lean) * 9.4 - 0.5];
 
       // mains : retard seulement quand elles ne touchent pas le sol
       const hands = handsT.map((h, i) => {
@@ -333,6 +333,58 @@
         ctx.globalAlpha = 1; kettlebell(bp, bellScale);
       } else trail = [];
       if (false as boolean) { sweatT += dt; if (sweatT > 0.5 / sweaty) { sweatT = 0; parts.push({ x: hd[0] - 5, y: hd[1] - 4, vx: -0.5 - Math.random() * 0.6, vy: -0.9, life: 1, r: 1.5, c: '#8fb8e8' }); } }
+    }
+
+    // ---------- homme de dos, aux tractions ----------
+    const MX = 262, BAR = G - 96;
+    function manBack(T: number) {
+      const REP = 5, durs = Array.from({ length: REP }, (_, i) => 2.0 + 0.15 * i);
+      const total = 1.4 + durs.reduce((a, b) => a + b, 0) + 2.2;
+      let tt = (T + 3.1) % total, h = 0, rep = 0;
+      if (tt >= 1.4) {
+        let t2 = tt - 1.4;
+        for (let i = 0; i < REP; i++) {
+          if (t2 < durs[i]) { const u = t2 / durs[i]; rep = i; h = u < 0.42 ? eOut2(u / 0.42) : u < 0.53 ? 1 : 1 - sm((u - 0.53) / 0.47); break; }
+          t2 -= durs[i];
+        }
+      }
+      const sway = Math.sin(T * 1.2) * 1.1 * (1 - h), tremor = h > 0.97 && rep >= 3 ? Math.sin(T * 38) * 0.45 : 0;
+      const cx = MX + sway * 0.5, sY = BAR + lerp(22, 3, h) + tremor;
+      const rt = (a: number, b: number) => (_: number, t: number) => lerp(a, b, t);
+
+      // portique : deux montants + barre
+      ctx.fillStyle = RED;
+      ctx.beginPath(); ctx.roundRect(MX - 34, BAR - 2.2, 68, 4.4, 2.2); ctx.fill();
+      for (const sx of [-1, 1]) { ctx.beginPath(); ctx.roundRect(MX + sx * 31 - 1.8, BAR - 3, 3.6, G - BAR + 5, [1.8, 1.8, 0, 0]); ctx.fill(); }
+
+      // jambes (de dos : parallèles, genoux qui se plient en haut de la traction)
+      const hipY = sY + 27, bend = h * 5.5;
+      for (const sx of [-1, 1]) {
+        const hp: V = [cx + sx * 3.6, hipY], kn: V = [cx + sx * 4.6 + sway * 0.6, hipY + 14.5 - bend * 0.3], ft: V = [cx + sx * 4.4 + sway * 1.3, hipY + 29 - bend];
+        limbFill(hp, kn, ft, (sg, t) => sg === 0 ? lerp(5.6, 4.2, t) : lerp(4.2, 2.7, t) + 0.35 * Math.sin(Math.PI * t), SKIN);
+        ctx.fillStyle = SKIN; ctx.beginPath(); ctx.ellipse(ft[0] + sx * 0.8, ft[1] + 0.4, 4.2, 2.6, 0, 0, Math.PI * 2); ctx.fill();
+      }
+
+      // buste : épaules larges, dos en V, taille et bassin
+      const P: V[] = [[-6.5, -2.2], [-14.8, 1.8], [-14.2, 8.5], [-10.4, 17], [-8.6, 24], [-9, 29.5], [9, 29.5], [8.6, 24], [10.4, 17], [14.2, 8.5], [14.8, 1.8], [6.5, -2.2]].map(([x, y]) => [cx + x, sY + y] as V);
+      const mid2 = (a: V, b: V): V => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+      ctx.fillStyle = TANK; ctx.beginPath(); const m0 = mid2(P[P.length - 1], P[0]); ctx.moveTo(m0[0], m0[1]);
+      for (let i = 0; i < P.length; i++) { const e = mid2(P[i], P[(i + 1) % P.length]); ctx.quadraticCurveTo(P[i][0], P[i][1], e[0], e[1]); }
+      ctx.closePath(); ctx.fill();
+
+      // bras : épaule → coude (vers l'extérieur) → main sur la barre
+      for (const sx of [-1, 1]) {
+        const shd: V = [cx + sx * 12, sY + 1.8], hand: V = [MX + sx * 17.5, BAR + 1];
+        const [el, hd2] = ik(shd[0], shd[1], hand[0], hand[1], 11.5, 10.5, sx > 0);
+        limbFill(shd, el, hd2, (sg, t) => sg === 0 ? lerp(4.8, 3.5, t) : lerp(3.5, 3, t), SKIN);
+        ctx.fillStyle = SKIN; ctx.beginPath(); ctx.arc(hand[0], hand[1], 3.5, 0, Math.PI * 2); ctx.fill();
+      }
+
+      // cou + tête (de dos : crâne rond, cheveux courts)
+      const headY = sY - 9.4;
+      limbFill([cx, sY - 1.5], [cx, sY - 4.5], [cx, headY], rt(4.2, 3.8), SKIN);
+      ctx.fillStyle = SKIN; ctx.beginPath(); ctx.arc(cx, headY, 7.2, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = HAIR; ctx.beginPath(); ctx.arc(cx, headY - 0.4, 7.3, Math.PI * 1.02, Math.PI * 1.98); ctx.fill();
     }
 
     let breathPh = 0, curT = 0;
@@ -368,6 +420,7 @@
       p.lean += 0.012 * br; p.hip = [p.hip[0] + (resting ? 1.2 * Math.sin(T * 0.9) * w : 0), p.hip[1] + 0.3 * br];
 
       drawBox();
+      manBack(T);
       const effort = resting ? Math.sin(breathPh) > 0.2 : (w > 0.6 && it.kind !== 'swing') || (it.kind === 'swing' && w > 0.6 && u > 0.45 && u < 0.85);
       athlete(p, it.kind === 'swing' ? w : 0, effort, dt, (T % 3.7) < 0.13, resting ? 1.2 : 0.6 + 0.3 * rep);
       drawParts(dt);
