@@ -39,73 +39,98 @@
     const STAND = mk([0, G - 29.6], 0.04, [[4, G], [-3, G]], [[2, 19.5], [-1, 19.5]], true);
 
     // ---------- exercices ----------
-    function swing(t: number): Pose {
-      const T = 1.5, s = (1 - Math.cos((2 * Math.PI * (t % T)) / T)) / 2;   // 0 = charnière, 1 = debout
-      const e = sm(s);
-      const hip: V = [lerp(-9, 0, e), lerp(G - 23, G - 29.6, e)];
-      const lean = lerp(0.95, 0.04, e);
+    const eOut2 = (t: number) => 1 - (1 - t) * (1 - t);
+    const eOut3 = (t: number) => 1 - Math.pow(1 - t, 3);
+    const eIn2 = (t: number) => t * t;
+    const eBack = (t: number) => { const c1 = 1.3, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); };
+
+    type Seg = { end: number; pose: Pose; ease?: (t: number) => number; hop?: number; arc?: number; armsLift?: number };
+    function play(seq: Seg[], u: number): Pose {
+      let prevEnd = 0, prev = STAND;
+      for (const g of seq) {
+        if (u <= g.end) {
+          const f = Math.max(0, Math.min(1, (u - prevEnd) / (g.end - prevEnd)));
+          const p = lp(prev, g.pose, (g.ease ?? sm)(f));
+          const up = Math.sin(Math.PI * f);
+          if (g.hop) p.feet = [[p.feet[0][0], p.feet[0][1] - g.hop * up], [p.feet[1][0], p.feet[1][1] - g.hop * up]];
+          if (g.arc) { p.hip = [p.hip[0], p.hip[1] - g.arc * up]; p.feet = [[p.feet[0][0], p.feet[0][1] - g.arc * 0.9 * up], [p.feet[1][0], p.feet[1][1] - g.arc * 0.9 * up]]; }
+          if (g.armsLift) p.hands = [[p.hands[0][0] + g.armsLift * 0.45 * up, p.hands[0][1] - g.armsLift * up], [p.hands[1][0] + g.armsLift * 0.4 * up, p.hands[1][1] - g.armsLift * 1.05 * up]];
+          return p;
+        }
+        prevEnd = g.end; prev = g.pose;
+      }
+      return STAND;
+    }
+
+    // Kettlebell swing : la chute accélère (gravité), la montée est explosive, la bille flotte puis retombe.
+    const sA = (ph: number) => ph < 0.5 ? 1 - Math.pow(ph / 0.5, 2) : ph < 0.78 ? 1 - Math.pow(1 - (ph - 0.5) / 0.28, 3) : 1;
+    function swing(ph: number, rep: number): Pose {
+      const sArm = sA(ph), sHip = sA(Math.max(0, Math.min(1, ph + (ph < 0.5 ? -0.04 : 0.06))));
+      const e = sm(sHip), peak = ph > 0.62 && ph < 0.9 ? Math.sin(Math.PI * (ph - 0.62) / 0.28) : 0;
+      const hip: V = [lerp(-9, 0, e) + 1.1 * peak, lerp(G - 23, G - 29.6, e)];
+      const lean = lerp(0.95 + 0.04 * rep, 0.04, e) - 0.09 * peak;
       const p = mk(hip, lean, [[4, G], [-2, G]], [[0, 0], [0, 0]]);
       const sh = shoulderOf(hip, lean);
-      const a = lerp(-0.5, 1.45, s);
+      const bump = ph > 0.7 ? Math.sin(Math.PI * (ph - 0.7) / 0.3) : 0;
+      const a = lerp(-0.55, 1.45, sArm) + 0.28 * bump;
       const hand: V = [sh[0] + Math.sin(a) * 21, sh[1] + Math.cos(a) * 21];
       p.hands = [hand, [hand[0] - 0.8, hand[1] + 0.5]];
       p.bell = [hand[0] + Math.sin(a * 0.55) * 9, hand[1] + Math.cos(a * 0.55) * 9];
       return p;
     }
 
+    // Burpee
+    const K0 = mk([-4, G - 19], 0.6, [[4, G], [-1, G]], [[-8, 15], [-6, 16]], true);        // armé
     const K1 = mk([-6, G - 12], 1.15, [[4, G], [0, G]], [[19, G], [16, G]]);                // accroupi, mains au sol
     const K2 = mk([-5.5, G - 17], 1.35, [[-31, G], [-34, G]], [[19, G], [16, G]]);           // planche
     const K3 = mk([-7, G - 9], 1.45, [[-31, G], [-34, G]], [[19, G], [16, G]]);              // pompe en bas
-    const K4 = mk([4, G - 44], -0.05, [[7, G - 24], [1, G - 29]], [[3, -19], [1, -19.5]], true); // saut bras en l'air
-    const K5 = mk([-1, G - 21], 0.45, [[4, G], [-1, G]], [[8, 14], [6, 15]], true);          // réception
-    function burpee(t: number): Pose {
-      const T = 2.6, u = (t % T) / T;
-      const seq: [number, Pose, number][] = [  // [fin du segment, pose, hauteur du saut des pieds]
-        [0.10, STAND, 0], [0.22, K1, 0], [0.32, K2, 7], [0.42, K3, 0], [0.52, K2, 0], [0.62, K1, 7], [0.78, K4, 0], [0.90, K5, 0], [1.0, STAND, 0],
-      ];
-      let prevEnd = 0, prev = STAND;
-      for (const [end, pose, hop] of seq) {
-        if (u <= end) {
-          const f = (u - prevEnd) / (end - prevEnd), e = sm(f);
-          const p = lp(prev, pose, e);
-          const lift = hop * Math.sin(Math.PI * f);
-          if (hop) p.feet = [[p.feet[0][0], p.feet[0][1] - lift], [p.feet[1][0], p.feet[1][1] - lift]];
-          if (pose === K4 && f > 0) { const air = Math.sin(Math.PI * Math.min(1, f)); p.hip[1] -= 4 * air; }
-          return p;
-        }
-        prevEnd = end; prev = pose;
-      }
-      return STAND;
-    }
-
-    const BX = 40, BW = 36, BH = 24;                 // caisse : x gauche, largeur, hauteur
-    const B0 = mk([-5, G - 20], 0.6, [[3, G], [-2, G]], [[-9, 16], [-8, 16]], true);                    // élan
-    const B1 = mk([BX + 14, G - BH - 20], 0.5, [[BX + 18, G - BH], [BX + 13, G - BH]], [[8, 14], [6, 15]], true); // réception sur caisse
-    const B2 = mk([BX + 17, G - BH - 29.6], 0.04, [[BX + 20, G - BH], [BX + 14, G - BH]], [[2, 19.5], [-1, 19.5]], true); // debout sur caisse
-    const B3 = mk([-1, G - 22], 0.45, [[4, G], [-1, G]], [[8, 14], [6, 15]], true);                     // réception au sol
-    function box(t: number): Pose {
-      const T = 1.7, u = (t % T) / T;
-      const jump = (a: Pose, b: Pose, f: number, arc: number, armsUp: boolean): Pose => {
-        const e = sm(f), p = lp(a, b, e), up = Math.sin(Math.PI * f);
-        p.hip = [p.hip[0], p.hip[1] - arc * up];
-        const lift = arc * 0.9 * up;
-        p.feet = [[p.feet[0][0], p.feet[0][1] - lift], [p.feet[1][0], p.feet[1][1] - lift]];
-        const sh = shoulderOf(p.hip, p.lean);
-        if (armsUp) { const o = up; p.hands = [[sh[0] + lerp(a.hands[0][0] - shoulderOf(a.hip, a.lean)[0], 12, o), sh[1] + lerp(a.hands[0][1] - shoulderOf(a.hip, a.lean)[1], -10, o)], [sh[0] + lerp(a.hands[1][0] - shoulderOf(a.hip, a.lean)[0], 10, o), sh[1] + lerp(a.hands[1][1] - shoulderOf(a.hip, a.lean)[1], -11, o)]]; }
-        return p;
-      };
-      if (u < 0.14) return lp(STAND, B0, sm(u / 0.14));
-      if (u < 0.44) return jump(B0, B1, (u - 0.14) / 0.30, 24, true);
-      if (u < 0.56) return lp(B1, B2, sm((u - 0.44) / 0.12));
-      if (u < 0.64) return lp(B2, B2, 0);
-      if (u < 0.82) return jump(B2, B3, (u - 0.64) / 0.18, 12, false);
-      return lp(B3, STAND, sm((u - 0.82) / 0.18));
-    }
-
-    const SEQ: { k: 'swing' | 'burpee' | 'box'; d: number; fn: (t: number) => Pose }[] = [
-      { k: 'swing', d: 4.5, fn: swing }, { k: 'burpee', d: 5.2, fn: burpee }, { k: 'box', d: 5.1, fn: box },
+    const K4 = mk([4, G - 44], -0.06, [[7, G - 24], [1, G - 29]], [[3, -19], [1, -19.5]], true); // saut bras en l'air
+    const K5 = mk([-1, G - 18], 0.55, [[4, G], [-1, G]], [[7, 15], [5, 16]], true);           // réception amortie
+    const BURPEE: Seg[] = [
+      { end: 0.07, pose: K0, ease: eIn2 }, { end: 0.18, pose: K1, ease: eOut3 }, { end: 0.28, pose: K2, ease: eOut2, hop: 8 },
+      { end: 0.42, pose: K3, ease: sm }, { end: 0.56, pose: K2, ease: eBack }, { end: 0.65, pose: K1, ease: eOut2, hop: 9 },
+      { end: 0.73, pose: K0, ease: eIn2 }, { end: 0.88, pose: K4, ease: eOut3 }, { end: 0.95, pose: K5, ease: eIn2 }, { end: 1.0, pose: STAND, ease: eOut2 },
     ];
-    const TOTAL = SEQ.reduce((a, s) => a + s.d, 0);
+
+    // Box jump
+    const BX = 40, BW = 36, BH = 24;
+    const B0 = mk([-5, G - 20], 0.6, [[3, G], [-2, G]], [[-9, 16], [-8, 16]], true);
+    const B00 = mk([-6, G - 16.5], 0.72, [[3, G], [-2, G]], [[-12, 14], [-11, 14.5]], true);
+    const B1 = mk([BX + 14, G - BH - 18], 0.55, [[BX + 18, G - BH], [BX + 13, G - BH]], [[8, 14], [6, 15]], true);
+    const B2 = mk([BX + 17, G - BH - 29.6], 0.04, [[BX + 20, G - BH], [BX + 14, G - BH]], [[2, 19.5], [-1, 19.5]], true);
+    const B3 = mk([-1, G - 19], 0.5, [[4, G], [-1, G]], [[8, 14], [6, 15]], true);
+    const BOX: Seg[] = [
+      { end: 0.11, pose: B0, ease: sm }, { end: 0.18, pose: B00, ease: eIn2 }, { end: 0.40, pose: B1, ease: eOut2, arc: 26, armsLift: 15 },
+      { end: 0.50, pose: B2, ease: eOut3 }, { end: 0.62, pose: B2 }, { end: 0.78, pose: B3, ease: eIn2, arc: 12 }, { end: 1.0, pose: STAND, ease: eOut2 },
+    ];
+
+    // Repos : mains sur les hanches, respiration forte, balancement du poids, coup de main sur le front
+    function rest(t: number, wipe: boolean): Pose {
+      const hip: V = [0.6, G - 29.2], lean = 0.12, sh = shoulderOf(hip, lean);
+      const p = mk(hip, lean, [[5, G], [-4, G]], [[hip[0] + 4.5, hip[1] - 3.5], [hip[0] + 2.5, hip[1] - 3]]);
+      if (wipe) {
+        const w = sm((t - 0.35) / 0.25) * sm((1.25 - t) / 0.25);
+        p.hands[0] = [lerp(p.hands[0][0], sh[0] + 1.5 + Math.sin(t * 15) * 3, w), lerp(p.hands[0][1], sh[1] - 16.5, w)];
+      }
+      return p;
+    }
+
+    // ---------- planning aléatoire : chaque boucle est un peu différente ----------
+    type Item = { kind: 'swing' | 'burpee' | 'box' | 'rest'; s: number; d: number; durs: number[]; wipe: boolean };
+    type Cycle = { s: number; d: number; items: Item[] };
+    const rnd = (a: number, b: number) => a + Math.random() * (b - a);
+    function build(s0: number): Cycle {
+      const items: Item[] = []; let t = s0;
+      const add = (kind: Item['kind'], durs: number[], wipe = false) => { const d = durs.reduce((a, b) => a + b, 0); items.push({ kind, s: t, d, durs, wipe }); t += d; };
+      add('swing', [0, 1, 2].map((i) => 1.5 * (1 + 0.08 * i) + rnd(-0.07, 0.07)));
+      add('rest', [rnd(1.7, 2.2)], Math.random() < 0.6);
+      add('burpee', [0, 1].map((i) => 2.7 * (1 + 0.09 * i) + rnd(-0.12, 0.12)));
+      add('rest', [rnd(1.7, 2.2)], Math.random() < 0.6);
+      add('box', [0, 1, 2].map((i) => 1.85 * (1 + 0.07 * i) + rnd(-0.09, 0.09)));
+      add('rest', [rnd(1.7, 2.2)], Math.random() < 0.6);
+      return { s: s0, d: t - s0, items };
+    }
+    let cyc: Cycle | null = null;
 
     // ---------- cinématique inverse (2 segments) ----------
     function ik(sx: number, sy: number, tx: number, ty: number, l1: number, l2: number, fwd: boolean): [V, V] {
@@ -180,7 +205,7 @@
       ctx.fillStyle = SHORTS; capsulePath(hip, [hip[0] + d[0] * 2.5, hip[1] + d[1] * 2.5], 7.2, 7); ctx.fill();
       ctx.strokeStyle = BONE; ctx.lineWidth = 1.4; ctx.beginPath(); const w1 = P(0.1, -6.8), w2 = P(0.1, 7); ctx.moveTo(w1[0], w1[1]); ctx.lineTo(w2[0], w2[1]); ctx.stroke();
     }
-    function head(hd: V, lean: number, effort: boolean, dt: number) {
+    function head(hd: V, lean: number, effort: boolean, dt: number, blink: boolean) {
       // queue de cheval à ressort
       const base: V = [hd[0] - 6, hd[1] - 2.5], rest: V = [base[0] - 8.5 - Math.sin(lean) * 3, base[1] + 3 + Math.cos(lean) * 2];
       if (!pony) { pony = [rest[0], rest[1]]; }
@@ -200,7 +225,8 @@
       ctx.strokeStyle = BONE; ctx.lineWidth = 3.2; ctx.beginPath(); ctx.moveTo(hd[0] - 7.3, hd[1] - 2.4); ctx.lineTo(hd[0] + 7.3, hd[1] - 3.6); ctx.stroke();
       ctx.strokeStyle = RED; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(hd[0] - 6.8, hd[1] - 2.4); ctx.lineTo(hd[0] + 6.8, hd[1] - 3.5); ctx.stroke();
       // oeil, sourcil, bouche
-      ctx.fillStyle = HAIR; ctx.beginPath(); ctx.arc(hd[0] + 3.7, hd[1] + 0.6, 1.15, 0, Math.PI * 2); ctx.fill();
+      if (blink) { ctx.strokeStyle = HAIR; ctx.lineWidth = 1.1; ctx.beginPath(); ctx.moveTo(hd[0] + 2.6, hd[1] + 0.8); ctx.lineTo(hd[0] + 4.9, hd[1] + 0.8); ctx.stroke(); }
+      else { ctx.fillStyle = HAIR; ctx.beginPath(); ctx.arc(hd[0] + 3.7, hd[1] + 0.6, 1.15, 0, Math.PI * 2); ctx.fill(); }
       ctx.strokeStyle = HAIR; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(hd[0] + 2.3, hd[1] - 1.1); ctx.lineTo(hd[0] + 5.1, hd[1] - (effort ? 0.4 : 1.4)); ctx.stroke();
       ctx.fillStyle = effort ? '#8a3b2f' : 'transparent'; ctx.strokeStyle = '#8a3b2f'; ctx.lineWidth = 0.9;
       ctx.beginPath(); if (effort) { ctx.ellipse(hd[0] + 4.1, hd[1] + 4.4, 1.5, 1.1, 0, 0, Math.PI * 2); ctx.fill(); } else { ctx.moveTo(hd[0] + 2.8, hd[1] + 4.4); ctx.lineTo(hd[0] + 5.2, hd[1] + 4.2); ctx.stroke(); }
@@ -243,21 +269,42 @@
       ctx.globalAlpha = 1; parts = parts.filter((q) => q.life > 0);
     }
 
-    function athlete(p: Pose, bellScale: number, effort: boolean, dt: number) {
+    // ressorts : la tête et les mains libres suivent avec un léger retard (mouvement secondaire)
+    type Sp = { p: V; v: V; ok: boolean };
+    const mkSp = (): Sp => ({ p: [0, 0], v: [0, 0], ok: false });
+    const headSp = mkSp(), handSp: [Sp, Sp] = [mkSp(), mkSp()];
+    function spr(sp: Sp, t: V, dt: number, kk = 240, cc = 20): V {
+      if (!sp.ok || dt > 0.2) { sp.p = [t[0], t[1]]; sp.v = [0, 0]; sp.ok = true; return sp.p; }
+      let rem = dt;
+      while (rem > 0) {
+        const h = Math.min(rem, 1 / 120);
+        for (let i = 0; i < 2; i++) { sp.v[i] += (kk * (t[i] - sp.p[i]) - cc * sp.v[i]) * h; sp.p[i] += sp.v[i] * h; }
+        rem -= h;
+      }
+      return sp.p;
+    }
+
+    function athlete(p: Pose, bellScale: number, effort: boolean, dt: number, blink: boolean, sweaty: number) {
       ctx.lineCap = 'round'; ctx.lineJoin = 'round';
       const hip: V = [OX + p.hip[0], p.hip[1]], lean = p.lean, sh = shoulderOf(hip, lean);
       const feet: [V, V] = [[OX + p.feet[0][0], p.feet[0][1]], [OX + p.feet[1][0], p.feet[1][1]]];
-      const hands: [V, V] = [[OX + p.hands[0][0], p.hands[0][1]], [OX + p.hands[1][0], p.hands[1][1]]];
-      const hd: V = [sh[0] + Math.sin(lean) * 11.5, sh[1] - Math.cos(lean) * 11.5 - 1];
+      const handsT: [V, V] = [[OX + p.hands[0][0], p.hands[0][1]], [OX + p.hands[1][0], p.hands[1][1]]];
+      const hdT: V = [sh[0] + Math.sin(lean) * 11.5, sh[1] - Math.cos(lean) * 11.5 - 1];
 
-      // ombre portée sur le rouge (s'étire à plat, s'estompe en l'air)
+      // mains : retard seulement quand elles ne touchent pas le sol
+      const hands = handsT.map((h, i) => {
+        const sp = spr(handSp[i], h, dt, 210, 17), wgt = Math.max(0, Math.min(1, (G - 5 - h[1]) / 10));
+        return [h[0] + (sp[0] - h[0]) * wgt, h[1] + (sp[1] - h[1]) * wgt] as V;
+      }) as [V, V];
+      const hdS = spr(headSp, hdT, dt, 320, 24);
+      const hd: V = [hdT[0] + Math.max(-3, Math.min(3, hdS[0] - hdT[0])), hdT[1] + Math.max(-3, Math.min(3, hdS[1] - hdT[1]))];
+
+      // ombre portée
       const low = Math.max(feet[0][1], feet[1][1]), airH = Math.max(0, G - low), k2 = Math.max(0.35, 1 - airH / 55);
       ctx.fillStyle = `rgba(0,0,0,${0.3 * k2})`;
       ctx.beginPath(); ctx.ellipse(hip[0] - Math.sin(lean) * 5, G + 3.6, 19 * k2 + Math.abs(Math.sin(lean)) * 24, 3.2, 0, 0, Math.PI * 2); ctx.fill();
 
       // poussière à la réception
-      const air: [boolean, boolean] = [feet[0][1] < G - BH * 0.5 - 3 && !(feet[0][0] > OX + BX && feet[0][1] > G - BH - 2), feet[1][1] < G - BH * 0.5 - 3 && !(feet[1][0] > OX + BX && feet[1][1] > G - BH - 2)];
-      void air;
       const fy = [feet[0][1], feet[1][1]];
       for (let i = 0; i < 2; i++) {
         const flying = fy[i] < G - BH - 2.5 || (fy[i] < G - 2.5 && feet[i][0] < OX + BX - 2);
@@ -269,30 +316,53 @@
       arm(sh, hands[1], true);
       leg(hip, feet[0], false);
       torso(hip, sh, lean);
-      head(hd, lean, effort, dt);
+      chain([[[sh[0] + Math.sin(lean) * 1.5, sh[1] - Math.cos(lean) * 1.5], hd, 3.7, 3.4]], SKIN);
+      head(hd, lean, effort, dt, blink);
       arm(sh, hands[0], false);
       if (p.bell && bellScale > 0.02) {
-        const bp: V = [OX + p.bell[0], p.bell[1]];
+        const bp: V = [OX + p.bell[0] + (hands[0][0] - handsT[0][0]), p.bell[1] + (hands[0][1] - handsT[0][1])];
         trail.push(bp); if (trail.length > 6) trail.shift();
         for (let i = 0; i < trail.length - 1; i++) { ctx.globalAlpha = (i / trail.length) * 0.22 * bellScale; kettlebell(trail[i], bellScale * 0.95); }
         ctx.globalAlpha = 1; kettlebell(bp, bellScale);
       } else trail = [];
-      // gouttes de sueur
-      if (effort) { sweatT += dt; if (sweatT > 0.32) { sweatT = 0; parts.push({ x: hd[0] - 5, y: hd[1] - 4, vx: -0.5 - Math.random() * 0.6, vy: -0.9, life: 1, r: 1.5, c: '#8fb8e8' }); } }
+      if (sweaty > 0) { sweatT += dt; if (sweatT > 0.5 / sweaty) { sweatT = 0; parts.push({ x: hd[0] - 5, y: hd[1] - 4, vx: -0.5 - Math.random() * 0.6, vy: -0.9, life: 1, r: 1.5, c: '#8fb8e8' }); } }
     }
 
+    let breathPh = 0, curT = 0;
     function frame(time: number) {
-      const dt = Math.max(0, Math.min(0.05, (time - prevT) / 1000)); prevT = time;
+      const T = time / 1000;
+      const dt = Math.max(0, Math.min(0.05, (time - prevT) / 1000)); prevT = time; curT = time;
       ctx.setTransform(dpr * k, 0, 0, dpr * k, 0, 0);
       ctx.clearRect(0, 0, LW, LH);
-      let t = (time / 1000) % TOTAL, ex = SEQ[0];
-      for (const s of SEQ) { if (t < s.d) { ex = s; break; } t -= s.d; }
-      const w = Math.min(sm(t / 0.45), sm((ex.d - t) / 0.45));
-      const full = ex.fn(t), p = lp(STAND, full, w);
-      if (ex.k === 'swing') p.bell = full.bell;
+
+      if (!cyc || T < cyc.s) cyc = build(T);
+      while (T >= cyc.s + cyc.d) cyc = build(cyc.s + cyc.d);
+      const it = cyc.items.find((i) => T >= i.s && T < i.s + i.d) ?? cyc.items[0];
+      const lt = T - it.s;
+      const w = Math.min(sm(lt / 0.45), sm((it.d - lt) / 0.45));
+
+      // quelle répétition ? (durées variables, légèrement plus lentes à mesure que la fatigue monte)
+      let rep = 0, acc = 0;
+      for (let i = 0; i < it.durs.length; i++) { if (lt < acc + it.durs[i] || i === it.durs.length - 1) { rep = i; break; } acc += it.durs[i]; }
+      const u = Math.max(0, Math.min(1, (lt - acc) / it.durs[rep]));
+
+      let full: Pose;
+      if (it.kind === 'swing') full = swing(u, rep);
+      else if (it.kind === 'burpee') full = play(BURPEE, u);
+      else if (it.kind === 'box') full = play(BOX, u);
+      else full = rest(lt, it.wipe);
+      const p = lp(STAND, full, w);
+      if (it.kind === 'swing' && full.bell) p.bell = [p.hands[0][0] + (full.bell[0] - full.hands[0][0]), p.hands[0][1] + (full.bell[1] - full.hands[0][1])];
+
+      // respiration (plus rapide et profonde au repos et en fin de série), léger balancement du poids
+      const resting = it.kind === 'rest', fatigue = resting ? 1 : 0.45 + 0.2 * rep;
+      breathPh += Math.PI * 2 * (resting ? 0.55 : 0.32) * dt;
+      const br = Math.sin(breathPh) * fatigue;
+      p.lean += 0.012 * br; p.hip = [p.hip[0] + (resting ? 1.2 * Math.sin(T * 0.9) * w : 0), p.hip[1] + 0.3 * br];
+
       drawBox();
-      const effort = w > 0.6 && !(ex.k === 'swing' && t < 0.6);
-      athlete(p, ex.k === 'swing' ? w : 0, effort, dt);
+      const effort = resting ? Math.sin(breathPh) > 0.2 : (w > 0.6 && it.kind !== 'swing') || (it.kind === 'swing' && w > 0.6 && u > 0.45 && u < 0.85);
+      athlete(p, it.kind === 'swing' ? w : 0, effort, dt, (T % 3.7) < 0.13, resting ? 1.2 : 0.6 + 0.3 * rep);
       drawParts(dt);
     }
 
@@ -301,7 +371,7 @@
       k = innerWidth < 720 ? 1.05 : 1.45; dpr = Math.min(devicePixelRatio || 1, 2);
       canvas!.width = Math.round(LW * k * dpr); canvas!.height = Math.round(LH * k * dpr);
       canvas!.style.width = LW * k + 'px'; canvas!.style.height = LH * k + 'px';
-      frame(performance.now());
+      frame(curT);
     }
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
     let raf = 0, visible = false, t0 = 0;
@@ -317,7 +387,7 @@
     document.addEventListener('visibilitychange', () => { if (!document.hidden && visible) run(); });
     addEventListener('resize', resize);
     resize();
-    (document.fonts?.ready ?? Promise.resolve()).then(() => frame(performance.now() - t0));
+    (document.fonts?.ready ?? Promise.resolve()).then(() => frame(curT));
   }
 </script>
 
