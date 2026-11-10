@@ -430,7 +430,7 @@
 
     // ---------- cycle de vie ----------
     function resize() {
-      k = innerWidth < 720 ? 1.05 : 1.45; dpr = Math.min(devicePixelRatio || 1, 2);
+      k = innerWidth < 720 ? 0.42 : 0.58; dpr = Math.min(devicePixelRatio || 1, 2);
       canvas!.width = Math.round(LW * k * dpr); canvas!.height = Math.round(LH * k * dpr);
       canvas!.style.width = LW * k + 'px'; canvas!.style.height = LH * k + 'px';
       canvas!.style.bottom = `calc(100% - ${SINK * k + 1}px)`; // la ligne de sol passe 1 px sous le bord du rouge : les pieds et la caisse sont collés, sans liseré
