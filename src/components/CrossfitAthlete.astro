@@ -245,9 +245,9 @@
     }
     function drawBox() {
       const x = OX + BX, top = G - BH;
-      ctx.fillStyle = OUT; ctx.beginPath(); ctx.roundRect(x - 0.9, top - 0.9, BW + 1.8, BH + 1.8, 3.4); ctx.fill();
+      ctx.fillStyle = OUT; ctx.beginPath(); ctx.roundRect(x - 0.9, top - 0.9, BW + 1.8, BH + 3.8, [3.4, 3.4, 0, 0]); ctx.fill();
       const g = ctx.createLinearGradient(0, top, 0, G); g.addColorStop(0, '#eadfc4'); g.addColorStop(1, '#cbbf9f');
-      ctx.fillStyle = g; ctx.beginPath(); ctx.roundRect(x, top, BW, BH, 2.5); ctx.fill();
+      ctx.fillStyle = g; ctx.beginPath(); ctx.roundRect(x, top, BW, BH + 3, [2.5, 2.5, 0, 0]); ctx.fill();
       ctx.fillStyle = '#f6eed6'; ctx.fillRect(x + 1, top + 1, BW - 2, 3);
       ctx.strokeStyle = 'rgba(120,104,70,.55)'; ctx.lineWidth = 1;
       for (let i = 1; i < 4; i++) { ctx.beginPath(); ctx.moveTo(x + 2, top + 4 + i * 4.6); ctx.lineTo(x + BW - 2, top + 4 + i * 4.6); ctx.stroke(); }
@@ -366,6 +366,7 @@
       k = innerWidth < 720 ? 1.05 : 1.45; dpr = Math.min(devicePixelRatio || 1, 2);
       canvas!.width = Math.round(LW * k * dpr); canvas!.height = Math.round(LH * k * dpr);
       canvas!.style.width = LW * k + 'px'; canvas!.style.height = LH * k + 'px';
+      canvas!.style.bottom = `calc(100% - ${SINK * k + 1}px)`; // la ligne de sol passe 1 px sous le bord du rouge : les pieds et la caisse sont collés, sans liseré
       frame(curT);
     }
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
