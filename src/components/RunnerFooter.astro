@@ -1,5 +1,6 @@
 ---
-// Coureur qui traverse de gauche à droite le haut du pied de page (bord bas de la section rouge), en boucle.
+// Coureur qui traverse le haut du pied de page (bord bas de la section rouge) en sprintant de gauche à droite.
+// Au milieu : il s'arrête, descend au sol, fait une série de pompes, se relève, puis repart.
 ---
 <div class="runner" aria-hidden="true"><canvas class="runner__c"></canvas></div>
 
@@ -9,26 +10,73 @@
   if (wrap && canvas) {
     const ctx = canvas.getContext('2d')!;
     const NAVY = '#0d1a2d';
-    const LW = 100, LH = 82, G = LH, OX = 50;      // taille logique ; les pieds touchent le bas du canvas
-    const L1 = 17, L2 = 17, A1 = 11, A2 = 10;
-    const TCY = 0.5, V = 140;                       // durée d'un cycle (2 foulées) ; vitesse au sol (unités/s) = glissement du pied d'appui
-    const PAUSE = 2.5;
+    const LW = 116, LH = 84, G = LH, OX = 52;        // taille logique ; les pieds touchent le bas du canvas
+    const L1 = 17, L2 = 17, A1 = 11, A2 = 10, TORSO = 22;
+    const V = 212, STRIDE = 83.3;                    // vitesse de sprint (unités/s) ; distance d'un cycle complet (2 foulées)
+    const PAUSE = 1.5;
     let k = 0.8, dpr = 1;
     type V2 = [number, number];
+    type Pose = { hip: V2; lean: number; ha: number; toe: number; feet: [V2, V2]; elb: [V2, V2]; hands: [V2, V2] };
 
     const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
     const sm = (t: number) => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); };
+    const lv = (a: V2, b: V2, t: number): V2 => [lerp(a[0], b[0], t), lerp(a[1], b[1], t)];
+    const shoulderOf = (hip: V2, lean: number): V2 => [hip[0] + Math.sin(lean) * TORSO, hip[1] - Math.cos(lean) * TORSO];
 
-    function ik(sx: number, sy: number, tx: number, ty: number, l1: number, l2: number): V2 {
+    // cinématique inverse à 2 segments ; renvoie l'articulation et l'extrémité (ramenée à la portée du membre)
+    function ik(sx: number, sy: number, tx: number, ty: number, l1: number, l2: number, fwd: boolean): [V2, V2] {
       const dx = tx - sx, dy = ty - sy, d = Math.hypot(dx, dy);
       const dd = Math.min(Math.max(d, 0.001), l1 + l2 - 0.001), a = Math.atan2(dy, dx);
       const b = Math.acos(Math.max(-1, Math.min(1, (l1 * l1 + dd * dd - l2 * l2) / (2 * l1 * dd))));
       const c1: V2 = [sx + l1 * Math.cos(a + b), sy + l1 * Math.sin(a + b)];
       const c2: V2 = [sx + l1 * Math.cos(a - b), sy + l1 * Math.sin(a - b)];
-      return c1[0] > c2[0] ? c1 : c2; // genou vers l'avant
+      const joint = fwd ? (c1[0] > c2[0] ? c1 : c2) : (c1[0] < c2[0] ? c1 : c2);
+      return [joint, [sx + dd * Math.cos(a), sy + dd * Math.sin(a)]];
+    }
+    // pose « statique » : les coudes sont déduits des mains
+    function fixed(hip: V2, lean: number, ha: number, toe: number, feet: [V2, V2], hands: [V2, V2]): Pose {
+      const sh = shoulderOf(hip, lean);
+      const a = ik(sh[0], sh[1], hands[0][0], hands[0][1], A1, A2, false), b = ik(sh[0], sh[1], hands[1][0], hands[1][1], A1, A2, false);
+      return { hip, lean, ha, toe, feet, elb: [a[0], b[0]], hands: [a[1], b[1]] };
+    }
+    const lp = (a: Pose, b: Pose, t: number): Pose => ({
+      hip: lv(a.hip, b.hip, t), lean: lerp(a.lean, b.lean, t), ha: lerp(a.ha, b.ha, t), toe: lerp(a.toe, b.toe, t),
+      feet: [lv(a.feet[0], b.feet[0], t), lv(a.feet[1], b.feet[1], t)],
+      elb: [lv(a.elb[0], b.elb[0], t), lv(a.elb[1], b.elb[1], t)],
+      hands: [lv(a.hands[0], b.hands[0], t), lv(a.hands[1], b.hands[1], t)],
+    });
+
+    // ---------- poses ----------
+    const FY = G - 1.6;                                   // hauteur de la cheville au sol
+    const STAND = fixed([OX, G - 32.6], 0.05, 0.05, 0, [[OX + 4, FY], [OX - 3, FY]], [[OX + 3, G - 32.6 - 21 + 18], [OX, G - 32.6 - 21 + 18]]);
+    const CROUCH = fixed([OX - 3, G - 11], 1.0, 0.55, 0.2, [[OX - 4, FY], [OX - 8, FY]], [[OX + 19, G - 3.4], [OX + 17, G - 3.4]]);
+    const HX = OX + 24, HY = G - 2.8, LB = 55.5;           // pompes : mains au sol, corps gainé de longueur LB
+    function plank(h: number): Pose {                        // h = 1 : bras tendus, h = 0 : poitrine près du sol
+      const fx = HX - Math.sqrt(LB * LB - (FY - (HY - 20.8)) ** 2), sy = HY - lerp(6.5, 20.8, h);
+      const sx = fx + Math.sqrt(LB * LB - (FY - sy) ** 2), r = (LB - TORSO) / LB;
+      const hip: V2 = [fx + (sx - fx) * r, FY + (sy - FY) * r], lean = Math.atan2(sx - hip[0], hip[1] - sy);
+      return fixed(hip, lean, lean - 0.55, 0.95, [[fx + 1, FY], [fx - 1, FY]], [[HX, HY], [HX - 2, HY]]);
     }
 
-    // membre lisse hanche→genou→cheville, épaisseur continue, un seul remplissage
+    // course de sprint : buste penché, foulée longue, genoux hauts, bras énergiques. φ est déduit de la distance parcourue, donc le pied d'appui ne glisse jamais.
+    function foot(p: number): V2 {
+      if (p < 0.36) return [lerp(15, -15, p / 0.36), 0];
+      const s = (p - 0.36) / 0.64;
+      return [lerp(-15, 18, sm(s)), 20 * Math.sin(Math.PI * Math.pow(s, 0.85))];
+    }
+    function runPose(phi: number): Pose {
+      const hip: V2 = [OX, G - 29 + 1.5 * Math.cos(4 * Math.PI * (phi - 0.18))], lean = 0.3, sh = shoulderOf(hip, lean);
+      const feet = [0, 0.5].map((o) => { const [fx, fy] = foot((phi + o) % 1); return [hip[0] + fx, FY - fy] as V2; }) as [V2, V2];
+      const elb: V2[] = [], hands: V2[] = [];
+      for (const sgn of [1, -1]) {
+        const a = sgn * -1.1 * Math.cos(2 * Math.PI * phi) + 0.15, f = a + 1.5;
+        const e: V2 = [sh[0] + A1 * Math.sin(a), sh[1] + A1 * Math.cos(a)];
+        elb.push(e); hands.push([e[0] + A2 * Math.sin(f), e[1] + A2 * Math.cos(f)]);
+      }
+      return { hip, lean, ha: 0.2, toe: 0.3, feet, elb: elb as [V2, V2], hands: hands as [V2, V2] };
+    }
+
+    // ---------- dessin ----------
     function limbFill(a: V2, b: V2, c: V2, rad: (seg: number, t: number) => number) {
       const cr = (p0: V2, p1: V2, p2: V2, p3: V2, t: number): V2 => {
         const t2 = t * t, t3 = t2 * t;
@@ -49,64 +97,82 @@
       }
     }
 
-    // position du pied (relative à la hanche) pour la phase p d'une jambe : appui 40 %, ramené ensuite en l'air
-    function foot(p: number): V2 {
-      if (p < 0.4) return [lerp(14, -14, p / 0.4), 0];
-      const s = (p - 0.4) / 0.6;
-      return [lerp(-14, 15, sm(s)), 16 * Math.sin(Math.PI * Math.pow(s, 0.85))];
-    }
-
-    function draw(phi: number) {
+    function draw(p: Pose) {
       ctx.clearRect(0, 0, LW, LH);
       ctx.fillStyle = NAVY;
-      const lean = 0.17;
-      const hx = OX, hy = G - 29.3 + 1.4 * Math.cos(4 * Math.PI * (phi - 0.2));
-      const sh: V2 = [hx + Math.sin(lean) * 22, hy - Math.cos(lean) * 22];
+      const hip = p.hip, sh = shoulderOf(hip, p.lean);
 
-      // jambes (en opposition de phase)
-      for (const off of [0, 0.5]) {
-        const [fx, fy] = foot((phi + off) % 1);
-        const ft: V2 = [hx + fx, G - fy - 1.6], hp: V2 = [hx, hy];
-        const kn = ik(hp[0], hp[1], ft[0], ft[1], L1, L2);
-        limbFill(hp, kn, ft, (sg, t) => sg === 0 ? lerp(5.4, 3.8, t) : lerp(3.8, 2.5, t) + 0.5 * Math.sin(Math.PI * t));
-        // chaussure : petit ovale orienté selon la hauteur du pied
-        ctx.beginPath(); ctx.ellipse(ft[0] + 2.4, ft[1] + 0.9, 4.6, 2.3, fy > 1 ? 0.35 : 0, 0, Math.PI * 2); ctx.fill();
+      for (const ft of p.feet) {
+        const kn = ik(hip[0], hip[1], ft[0], ft[1], L1, L2, true)[0];
+        limbFill(hip, kn, ft, (sg, t) => sg === 0 ? lerp(5.4, 3.8, t) : lerp(3.8, 2.5, t) + 0.5 * Math.sin(Math.PI * t));
+        const air = Math.max(0, FY - ft[1]), toe = Math.max(p.toe, Math.min(0.4, air / 25));
+        ctx.beginPath(); ctx.ellipse(ft[0] + 2.4 * Math.cos(toe), ft[1] + 0.9 + 2.4 * Math.sin(toe), 4.6, 2.3, toe, 0, Math.PI * 2); ctx.fill();
       }
 
-      // buste penché vers l'avant
-      limbFill([hx, hy], [lerp(hx, sh[0], 0.5), lerp(hy, sh[1], 0.5)], sh, (sg, t) => sg === 0 ? lerp(4.6, 5, t) : lerp(5, 5.6, t));
+      limbFill(hip, lv(hip, sh, 0.5), sh, (sg, t) => sg === 0 ? lerp(4.6, 5, t) : lerp(5, 5.6, t));
 
-      // bras en opposition : coude plié à ~90°
-      for (const [sgn, bend] of [[1, 1.45], [-1, 1.45]] as const) {
-        const a = sgn * -0.95 * Math.cos(2 * Math.PI * phi) + 0.1;
-        const el: V2 = [sh[0] + A1 * Math.sin(a), sh[1] + A1 * Math.cos(a)];
-        const f = a + bend;
-        const hd: V2 = [el[0] + A2 * Math.sin(f), el[1] + A2 * Math.cos(f)];
-        limbFill(sh, el, hd, (sg, t) => sg === 0 ? lerp(3.5, 2.9, t) : lerp(2.9, 2.4, t));
-        ctx.beginPath(); ctx.arc(hd[0], hd[1], 2.8, 0, Math.PI * 2); ctx.fill();
+      for (let i = 0; i < 2; i++) {
+        limbFill(sh, p.elb[i], p.hands[i], (sg, t) => sg === 0 ? lerp(3.5, 2.9, t) : lerp(2.9, 2.4, t));
+        ctx.beginPath(); ctx.arc(p.hands[i][0], p.hands[i][1], 2.8, 0, Math.PI * 2); ctx.fill();
       }
 
-      // cou + tête
-      const nk: V2 = [sh[0] + Math.sin(0.1) * 6, sh[1] - Math.cos(0.1) * 6], hd: V2 = [sh[0] + Math.sin(0.12) * 12.8, sh[1] - Math.cos(0.12) * 12.8];
+      const nk: V2 = [sh[0] + Math.sin(p.ha) * 6, sh[1] - Math.cos(p.ha) * 6], hd: V2 = [sh[0] + Math.sin(p.ha) * 12.8, sh[1] - Math.cos(p.ha) * 12.8];
       limbFill(sh, nk, hd, () => 3);
       ctx.beginPath(); ctx.arc(hd[0], hd[1], 6.8, 0, Math.PI * 2); ctx.fill();
     }
 
-    // ---------- boucle ----------
+    // ---------- scénario ----------
+    const TD = 1.0, TA = 0.9, HOLD = 0.35, REPS = 6, REP = 1.35;
+    // phases du passage : course → freinage → debout → au sol → pompes → relevé → debout → accélération → course
+    const T_DROP1 = 0.35, T_DROP2 = 0.3, T_UP1 = 0.3, T_UP2 = 0.4;
+    function scene(t: number, W: number) {
+      const Wl = W / k, Pstart = OX - LW - 5, Pend = Wl + OX + 5, Pm = Wl / 2;
+      const D1 = Pm - Pstart - V * TD / 2, t1 = D1 / V;
+      const tPush0 = t1 + TD + HOLD + T_DROP1 + T_DROP2, tPush1 = tPush0 + REPS * REP;
+      const tRise = tPush1 + T_UP1 + T_UP2 + HOLD, tEnd = tRise + TA + (Pend - (Pm + V * TA / 2)) / V;
+      let P = Pm, pose: Pose;
+      const breathe = (q: Pose, s: number): Pose => ({ ...q, hip: [q.hip[0], q.hip[1] + 0.35 * Math.sin(s * 3.2)], lean: q.lean + 0.012 * Math.sin(s * 3.2) });
+      if (t < t1) { P = Pstart + V * t; pose = runPose((P / STRIDE) % 1); }
+      else if (t < t1 + TD) {
+        const tau = t - t1; P = Pstart + D1 + V * tau - V * tau * tau / (2 * TD);
+        pose = lp(runPose((P / STRIDE) % 1), STAND, sm((tau - (TD - 0.45)) / 0.45));
+      } else if (t < t1 + TD + HOLD) pose = breathe(STAND, t);
+      else if (t < t1 + TD + HOLD + T_DROP1) pose = lp(STAND, CROUCH, sm((t - (t1 + TD + HOLD)) / T_DROP1));
+      else if (t < tPush0) {                                        // les pieds sont lancés en arrière, avec un petit saut
+        const f = (t - (tPush0 - T_DROP2)) / T_DROP2;
+        pose = lp(CROUCH, plank(1), sm(f)); const up = 7 * Math.sin(Math.PI * f);
+        pose.feet = [[pose.feet[0][0], pose.feet[0][1] - up], [pose.feet[1][0], pose.feet[1][1] - up]];
+      } else if (t < tPush1) {
+        const u = ((t - tPush0) % REP) / REP, rep = Math.floor((t - tPush0) / REP);
+        const slow = 1 + rep * 0.03;                                  // un peu plus lent à mesure que la fatigue monte
+        pose = plank(0.5 + 0.5 * Math.cos(2 * Math.PI * Math.min(1, u * slow)));
+      } else if (t < tPush1 + T_UP1) {
+        const f = (t - tPush1) / T_UP1; pose = lp(plank(1), CROUCH, sm(f)); const up = 6 * Math.sin(Math.PI * f);
+        pose.feet = [[pose.feet[0][0], pose.feet[0][1] - up], [pose.feet[1][0], pose.feet[1][1] - up]];
+      } else if (t < tPush1 + T_UP1 + T_UP2) pose = lp(CROUCH, STAND, sm((t - tPush1 - T_UP1) / T_UP2));
+      else if (t < tRise) pose = breathe(STAND, t);
+      else if (t < tRise + TA) {
+        const tau = t - tRise; P = Pm + V * tau * tau / (2 * TA);
+        pose = lp(STAND, runPose((P / STRIDE) % 1), sm(tau / 0.45));
+      } else { P = Pm + V * TA / 2 + V * (t - tRise - TA); pose = runPose((P / STRIDE) % 1); }
+      return { pose, P, tEnd };
+    }
+
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
     let W = 0, clock = 0, last = 0, raf = 0, visible = false;
     function place(t: number) {
-      const runDur = (W + LW * k) / (V * k), total = runDur + PAUSE, tt = t % total;
-      if (tt >= runDur) { canvas!.style.transform = `translateX(${W + 20}px)`; return; }
-      canvas!.style.transform = `translateX(${-LW * k + V * k * tt}px)`;
-      draw((tt / TCY) % 1);
+      const total = scene(0, W).tEnd + PAUSE, tt = t % total;
+      if (tt >= total - PAUSE) { canvas!.style.transform = `translateX(${W + 20}px)`; return; }
+      const { pose, P } = scene(tt, W);
+      canvas!.style.transform = `translateX(${(P - OX) * k}px)`;
+      draw(pose);
     }
     function resize() {
       k = innerWidth < 720 ? 0.42 : 0.8; dpr = Math.min(devicePixelRatio || 1, 2); W = wrap!.clientWidth;
       canvas!.width = Math.round(LW * k * dpr); canvas!.height = Math.round(LH * k * dpr);
       canvas!.style.width = LW * k + 'px'; canvas!.style.height = LH * k + 'px';
       ctx.setTransform(dpr * k, 0, 0, dpr * k, 0, 0);
-      if (reduce) { canvas!.style.transform = `translateX(${W * 0.25}px)`; draw(0.1); } else place(clock);
+      if (reduce) { canvas!.style.transform = `translateX(${W / 2 - OX * k}px)`; draw(STAND); } else place(clock);
     }
     const tick = (now: number) => {
       clock += Math.min((now - last) / 1000, 0.1); last = now;
