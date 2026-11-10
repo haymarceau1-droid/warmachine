@@ -7,7 +7,8 @@ const horaires = JSON.stringify(HORAIRES);
 <header class="nav-wrap">
   <nav class="nav" aria-label="Navigation principale">
     <a href="/" class="nav__logo" aria-label="WM Athletics — accueil">
-      <img src="/logo-negatif.svg" alt="WM Athletics" width="152" height="22" />
+      <img class="logo logo--color" src="/logo-negatif.svg" alt="WM Athletics" width="152" height="22" />
+      <img class="logo logo--mono" src="/logo-blanc.svg" alt="" width="152" height="22" aria-hidden="true" />
     </a>
     <ul class="nav__pill">
       {NAV.map((l) => (
@@ -96,7 +97,51 @@ const horaires = JSON.stringify(HORAIRES);
   });
 </script>
 
+<script>
+  // « Athletics » du logo est rouge : on le passe en blanc dès que le fond derrière le header (verre bleu nuit translucide) ne lui laisse pas assez de contraste.
+  const wrap = document.querySelector<HTMLElement>('.nav-wrap');
+  const logo = wrap?.querySelector<HTMLElement>('.nav__logo');
+  if (wrap && logo) {
+    const lum = (r: number, g: number, b: number) => {
+      const f = (v: number) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+      return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+    };
+    const RED = lum(216, 29, 29), GLASS: [number, number, number] = [13, 26, 45], ALPHA = 0.55;
+    let queued = false, mono = false;
+    const bgBehind = (): [number, number, number] => {
+      const r = logo.getBoundingClientRect();
+      const stack = document.elementsFromPoint(r.left + r.width * 0.7, r.top + r.height / 2);
+      for (const el of stack) {
+        if (wrap.contains(el)) continue;
+        for (let n: Element | null = el; n; n = n.parentElement) {
+          const m = getComputedStyle(n).backgroundColor.match(/rgba?\(([^)]+)\)/);
+          if (!m) continue;
+          const [r2, g2, b2, a = 1] = m[1].split(/[ ,\/]+/).filter(Boolean).map(Number);
+          if (a > 0.5) return [r2, g2, b2];
+        }
+      }
+      return [13, 26, 45];
+    };
+    const update = () => {
+      queued = false;
+      const bg = bgBehind();
+      const mix = bg.map((c, i) => c * (1 - ALPHA) + GLASS[i] * ALPHA) as [number, number, number];
+      const L = lum(...mix), ratio = (Math.max(RED, L) + 0.05) / (Math.min(RED, L) + 0.05);
+      const next = ratio < 2.8;
+      if (next !== mono) { mono = next; wrap.classList.toggle('nav-wrap--mono', mono); }
+    };
+    const queue = () => { if (!queued) { queued = true; requestAnimationFrame(update); } };
+    addEventListener('scroll', queue, { passive: true }); addEventListener('resize', queue);
+    update();
+  }
+</script>
+
 <style>
+  .nav__logo { position: relative; display: inline-block; line-height: 0; }
+  .logo { display: block; transition: opacity .3s var(--ease); }
+  .logo--mono { position: absolute; inset: 0; opacity: 0; }
+  .nav-wrap--mono .logo--mono { opacity: 1; }
+  .nav-wrap--mono .logo--color { opacity: 0; }
   .nav-wrap { position: fixed; inset: 20px 0 auto; margin-inline: auto; width: min(1360px, calc(100% - 48px)); z-index: 50; }
   .nav {
     display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 24px;
