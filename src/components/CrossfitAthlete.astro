@@ -148,30 +148,51 @@
     type Part = { x: number; y: number; vx: number; vy: number; life: number; r: number; c: string };
     let parts: Part[] = [], trail: V[] = [], pony: V | null = null, ponyV: V = [0, 0], prevT = 0, prevFootAir: [boolean, boolean] = [false, false], sweatT = 0;
 
-    function capsulePath(a: V, b: V, r1: number, r2: number, grow = 0) {
-      ctx.beginPath(); ctx.arc(a[0], a[1], r1 + grow, 0, Math.PI * 2); ctx.moveTo(b[0] + r2 + grow, b[1]); ctx.arc(b[0], b[1], r2 + grow, 0, Math.PI * 2);
+    // capsule effilée : deux cercles + un trapèze, remplis séparément (un seul chemin créait des trous aux recouvrements)
+    function capFill(a: V, b: V, r1: number, r2: number, grow = 0) {
+      ctx.beginPath(); ctx.arc(a[0], a[1], r1 + grow, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(b[0], b[1], r2 + grow, 0, Math.PI * 2); ctx.fill();
       const dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1, nx = -dy / L, ny = dx / L;
+      ctx.beginPath();
       ctx.moveTo(a[0] + nx * (r1 + grow), a[1] + ny * (r1 + grow)); ctx.lineTo(b[0] + nx * (r2 + grow), b[1] + ny * (r2 + grow));
-      ctx.lineTo(b[0] - nx * (r2 + grow), b[1] - ny * (r2 + grow)); ctx.lineTo(a[0] - nx * (r1 + grow), a[1] - ny * (r1 + grow)); ctx.closePath();
+      ctx.lineTo(b[0] - nx * (r2 + grow), b[1] - ny * (r2 + grow)); ctx.lineTo(a[0] - nx * (r1 + grow), a[1] - ny * (r1 + grow)); ctx.closePath(); ctx.fill();
+    }
+    // membre lisse : courbe de Catmull-Rom hanche→genou→cheville, épaisseur continue, UN seul remplissage (aucun joint visible)
+    function limbFill(a: V, b: V, c: V, rad: (seg: number, t: number) => number, fill: string) {
+      const cr = (p0: V, p1: V, p2: V, p3: V, t: number): V => {
+        const t2 = t * t, t3 = t2 * t;
+        const f = (i: number) => 0.5 * ((2 * p1[i]) + (-p0[i] + p2[i]) * t + (2 * p0[i] - 5 * p1[i] + 4 * p2[i] - p3[i]) * t2 + (-p0[i] + 3 * p1[i] - 3 * p2[i] + p3[i]) * t3);
+        return [f(0), f(1)];
+      };
+      const pts: V[] = [], rs: number[] = [], N = 12;
+      for (let i = 0; i <= N; i++) { const t = i / N; pts.push(cr(a, a, b, c, t)); rs.push(rad(0, t)); }
+      for (let i = 1; i <= N; i++) { const t = i / N; pts.push(cr(a, b, c, c, t)); rs.push(rad(1, t)); }
+      const L: V[] = [], R: V[] = [];
+      for (let i = 0; i < pts.length; i++) {
+        const p0 = pts[Math.max(0, i - 1)], p1 = pts[Math.min(pts.length - 1, i + 1)];
+        let dx = p1[0] - p0[0], dy = p1[1] - p0[1]; const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l;
+        L.push([pts[i][0] - dy * rs[i], pts[i][1] + dx * rs[i]]); R.push([pts[i][0] + dy * rs[i], pts[i][1] - dx * rs[i]]);
+      }
+      ctx.fillStyle = fill; ctx.beginPath(); ctx.moveTo(L[0][0], L[0][1]);
+      for (let i = 1; i < L.length; i++) ctx.lineTo(L[i][0], L[i][1]);
+      const e = pts[pts.length - 1], ea = Math.atan2(L[L.length - 1][1] - e[1], L[L.length - 1][0] - e[0]);
+      ctx.arc(e[0], e[1], rs[rs.length - 1], ea, ea + Math.PI, false);
+      for (let i = R.length - 1; i >= 0; i--) ctx.lineTo(R[i][0], R[i][1]);
+      const s0 = pts[0], sa = Math.atan2(R[0][1] - s0[1], R[0][0] - s0[0]);
+      ctx.arc(s0[0], s0[1], rs[0], sa, sa + Math.PI, false);
+      ctx.closePath(); ctx.fill();
     }
     function chain(pts: [V, V, number, number][], fill: string) {
-      ctx.fillStyle = OUT; for (const [a, b, r1, r2] of pts) { capsulePath(a, b, r1, r2, 0.9); ctx.fill(); }
-      ctx.fillStyle = fill; for (const [a, b, r1, r2] of pts) { capsulePath(a, b, r1, r2); ctx.fill(); }
+      ctx.fillStyle = OUT; for (const [a, b, r1, r2] of pts) capFill(a, b, r1, r2, 0.9);
+      ctx.fillStyle = fill; for (const [a, b, r1, r2] of pts) capFill(a, b, r1, r2);
     }
     const mid = (a: V, b: V, t: number): V => [lerp(a[0], b[0], t), lerp(a[1], b[1], t)];
 
     function leg(hip: V, foot: V, far: boolean) {
       const [knee, fo] = ik(hip[0], hip[1], foot[0], foot[1], L1, L2, true);
       const skin = far ? SKIN_FAR : SKIN, calf = mid(knee, fo, 0.32);
-      chain([[hip, knee, 4.8, 3.6], [knee, calf, 3.6, 4.0], [calf, fo, 4.0, 2.3]], skin);
-      // short : cuisse + liseré
-      const dx = knee[0] - hip[0], dy = knee[1] - hip[1], n = Math.hypot(dx, dy) || 1;
-      const e: V = [hip[0] + (dx / n) * 11.5, hip[1] + (dy / n) * 11.5];
-      ctx.fillStyle = far ? SHORTS_FAR : SHORTS; capsulePath(hip, e, 6, 5.2); ctx.fill();
-      ctx.strokeStyle = far ? '#9aa6b8' : BONE; ctx.lineWidth = 1.1; ctx.beginPath();
-      ctx.moveTo(e[0] - dy / n * 5.2, e[1] + dx / n * 5.2); ctx.lineTo(e[0] + dy / n * 5.2, e[1] - dx / n * 5.2); ctx.stroke();
-      // chaussette + chaussure
-      const ab = mid(knee, fo, 0.78); ctx.strokeStyle = far ? '#b8b2a6' : BONE; ctx.lineWidth = 3.2; ctx.beginPath(); ctx.moveTo(ab[0], ab[1]); ctx.lineTo(fo[0], fo[1]); ctx.stroke();
+      limbFill(hip, knee, fo, (sg, t) => sg === 0 ? lerp(5.4, 3.7, t * t * (3 - 2 * t)) : lerp(3.7, 2.4, t * t * (3 - 2 * t)) + 0.55 * Math.sin(Math.PI * Math.min(1, t * 1.15)) * (1 - t), skin);
+      // chaussure
       ctx.fillStyle = OUT; ctx.beginPath(); ctx.ellipse(fo[0] + 3.6, fo[1] - 1.9, 7.4, 4.3, 0, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = far ? '#c9c3b6' : BONE; ctx.beginPath(); ctx.ellipse(fo[0] + 3.6, fo[1] - 1.9, 6.6, 3.5, 0, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = far ? '#5f6e86' : '#26395a'; ctx.fillRect(fo[0] - 2.6, fo[1] - 0.9, 12.4, 1.5);
@@ -180,30 +201,25 @@
     function arm(sh: V, hand: V, far: boolean) {
       const [elbow, h] = ik(sh[0], sh[1], hand[0], hand[1], A1, A2, false);
       const skin = far ? SKIN_FAR : SKIN;
-      chain([[sh, elbow, 3.6, 3.0], [elbow, h, 3.0, 2.4]], skin);
-      const w = mid(elbow, h, 0.82); ctx.strokeStyle = far ? '#b8b2a6' : BONE; ctx.lineWidth = 3.6; ctx.lineCap = 'butt';
-      ctx.beginPath(); ctx.moveTo(w[0], w[1]); ctx.lineTo(mid(elbow, h, 0.96)[0], mid(elbow, h, 0.96)[1]); ctx.stroke(); ctx.lineCap = 'round'; // serre-poignet
-      ctx.fillStyle = OUT; ctx.beginPath(); ctx.arc(h[0], h[1], 3.7, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = skin; ctx.beginPath(); ctx.arc(h[0], h[1], 2.9, 0, Math.PI * 2); ctx.fill();
+      limbFill(sh, elbow, h, (sg, t) => sg === 0 ? lerp(3.9, 3, t) : lerp(3, 2.5, t), skin);
+      ctx.fillStyle = OUT; ctx.beginPath(); ctx.arc(h[0], h[1], 3.4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = skin; ctx.beginPath(); ctx.arc(h[0], h[1], 2.7, 0, Math.PI * 2); ctx.fill();
     }
     function torso(hip: V, sh: V, lean: number) {
       const d: V = [Math.sin(lean), -Math.cos(lean)], n: V = [Math.cos(lean), Math.sin(lean)];
       const P = (t: number, f: number): V => [hip[0] + (sh[0] - hip[0]) * t + n[0] * f, hip[1] + (sh[1] - hip[1]) * t + n[1] * f];
       const outline = (g: number) => {
-        ctx.beginPath();
-        const pts = [P(-0.02, -5.5 - g), P(0.45, -5.6 - g), P(1.0, -6.2 - g), P(1.04, 2 + g), P(0.85, 8.6 + g), P(0.5, 6.4 + g), P(0.1, 5.8 + g), P(-0.02, 6 + g)];
-        ctx.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]); ctx.closePath();
+        // courbe fermée lisse passant par les points (milieux de segments + points de contrôle)
+        const pts = [P(-0.02, -5.5 - g), P(0.45, -5.6 - g), P(0.98, -6 - g), P(1.04, 0 - g * 0.2), P(0.9, 7.6 + g), P(0.5, 6.2 + g), P(0.1, 5.6 + g), P(-0.04, 5.8 + g)];
+        const m = (i: number): V => { const a = pts[i % pts.length], b = pts[(i + 1) % pts.length]; return [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]; };
+        ctx.beginPath(); const s0 = m(pts.length - 1); ctx.moveTo(s0[0], s0[1]);
+        for (let i = 0; i < pts.length; i++) { const e = m(i); ctx.quadraticCurveTo(pts[i][0], pts[i][1], e[0], e[1]); }
+        ctx.closePath();
       };
       ctx.fillStyle = OUT; outline(0.9); ctx.fill();
       ctx.fillStyle = TANK; outline(0); ctx.fill();
-      // encolure + bretelles : peau au sommet
-      ctx.fillStyle = SKIN; ctx.beginPath(); const a = P(1.0, -2.2), b = P(1.04, 6.4), c = P(0.9, 4.6); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.lineTo(c[0], c[1]); ctx.closePath(); ctx.fill();
-      // bande blanche sur le débardeur + logo
-      ctx.strokeStyle = BONE; ctx.lineWidth = 1.2; ctx.beginPath(); const s1 = P(0.2, -5.5), s2 = P(0.2, 6.1); ctx.moveTo(s1[0], s1[1]); ctx.lineTo(s2[0], s2[1]); ctx.stroke();
-      ctx.save(); const lc = P(0.58, 1); ctx.translate(lc[0], lc[1]); ctx.rotate(lean); ctx.fillStyle = BONE; ctx.font = '900 6.4px Archivo, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('WM', 0.5, 2.2); ctx.restore();
       // short (bassin) + ceinture
-      ctx.fillStyle = SHORTS; capsulePath(hip, [hip[0] + d[0] * 2.5, hip[1] + d[1] * 2.5], 7.2, 7); ctx.fill();
-      ctx.strokeStyle = BONE; ctx.lineWidth = 1.4; ctx.beginPath(); const w1 = P(0.1, -6.8), w2 = P(0.1, 7); ctx.moveTo(w1[0], w1[1]); ctx.lineTo(w2[0], w2[1]); ctx.stroke();
+      ctx.fillStyle = SHORTS; capFill(hip, [hip[0] + d[0] * 2.5, hip[1] + d[1] * 2.5], 6.3, 6.1);
     }
     function head(hd: V, lean: number, effort: boolean, dt: number, blink: boolean) {
       // queue de cheval à ressort
@@ -218,12 +234,8 @@
       // cou, tête, oreille
       ctx.fillStyle = OUT; ctx.beginPath(); ctx.arc(hd[0], hd[1], 8.3, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = SKIN; ctx.beginPath(); ctx.arc(hd[0], hd[1], 7.5, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.moveTo(hd[0] + 6.4, hd[1] + 0.8); ctx.lineTo(hd[0] + 8.6, hd[1] + 2.6); ctx.lineTo(hd[0] + 6, hd[1] + 3.2); ctx.closePath(); ctx.fill(); // nez
-      ctx.fillStyle = HAIR; ctx.beginPath(); ctx.arc(hd[0] - 0.6, hd[1] - 0.6, 7.9, Math.PI * 0.74, Math.PI * 1.97); ctx.fill();
+      ctx.fillStyle = HAIR; ctx.beginPath(); ctx.arc(hd[0], hd[1], 7.5, Math.PI * 0.74, Math.PI * 1.97); ctx.fill();
       ctx.fillStyle = SKIN_FAR; ctx.beginPath(); ctx.ellipse(hd[0] - 1.8, hd[1] + 1.2, 1.7, 2.1, 0, 0, Math.PI * 2); ctx.fill();
-      // bandeau + noeud
-      ctx.strokeStyle = BONE; ctx.lineWidth = 3.2; ctx.beginPath(); ctx.moveTo(hd[0] - 7.3, hd[1] - 2.4); ctx.lineTo(hd[0] + 7.3, hd[1] - 3.6); ctx.stroke();
-      ctx.strokeStyle = RED; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(hd[0] - 6.8, hd[1] - 2.4); ctx.lineTo(hd[0] + 6.8, hd[1] - 3.5); ctx.stroke();
       // oeil, sourcil, bouche
       if (blink) { ctx.strokeStyle = HAIR; ctx.lineWidth = 1.1; ctx.beginPath(); ctx.moveTo(hd[0] + 2.6, hd[1] + 0.8); ctx.lineTo(hd[0] + 4.9, hd[1] + 0.8); ctx.stroke(); }
       else { ctx.fillStyle = HAIR; ctx.beginPath(); ctx.arc(hd[0] + 3.7, hd[1] + 0.6, 1.15, 0, Math.PI * 2); ctx.fill(); }
@@ -256,6 +268,8 @@
     }
 
     function dust(x: number, y: number, n: number, c = '#cfc8ba') {
+      return; // désactivé : la silhouette lissée reste propre
+      // eslint-disable-next-line no-unreachable
       for (let i = 0; i < n; i++) parts.push({ x: x + (Math.random() - 0.5) * 8, y, vx: (Math.random() - 0.5) * 2.4, vy: -(0.3 + Math.random() * 0.9), life: 1, r: 1.6 + Math.random() * 2, c });
     }
     function drawParts(dt: number) {
@@ -318,7 +332,7 @@
         trail.push(bp); if (trail.length > 6) trail.shift();
         ctx.globalAlpha = 1; kettlebell(bp, bellScale);
       } else trail = [];
-      if (sweaty > 0) { sweatT += dt; if (sweatT > 0.5 / sweaty) { sweatT = 0; parts.push({ x: hd[0] - 5, y: hd[1] - 4, vx: -0.5 - Math.random() * 0.6, vy: -0.9, life: 1, r: 1.5, c: '#8fb8e8' }); } }
+      if (false as boolean) { sweatT += dt; if (sweatT > 0.5 / sweaty) { sweatT = 0; parts.push({ x: hd[0] - 5, y: hd[1] - 4, vx: -0.5 - Math.random() * 0.6, vy: -0.9, life: 1, r: 1.5, c: '#8fb8e8' }); } }
     }
 
     let breathPh = 0, curT = 0;
