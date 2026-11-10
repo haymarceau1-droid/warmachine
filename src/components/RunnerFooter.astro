@@ -62,7 +62,8 @@
     function foot(p: number): V2 {
       if (p < 0.24) return [lerp(13, -13, p / 0.24), 0];
       const s = (p - 0.24) / 0.76;
-      return [lerp(-13, 17, sm(s)), 18 * Math.sin(Math.PI * Math.pow(s, 0.85))];
+      // le talon monte derrière le corps (genou plié, cuisse presque verticale), puis la jambe se déploie vers l'avant en redescendant : pas de genou levé
+      return [lerp(-13, 17, sm(Math.pow(s, 1.7))), 17 * Math.sin(Math.PI * Math.pow(s, 0.6))];
     }
     function runPose(phi: number): Pose {
       const hip: V2 = [OX, G - 30.5 + 2.4 * Math.cos(4 * Math.PI * (phi - 0.12))], lean = 0.26, sh = shoulderOf(hip, lean);
