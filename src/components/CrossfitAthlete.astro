@@ -281,19 +281,6 @@
       if (effort) { sweatT += dt; if (sweatT > 0.32) { sweatT = 0; parts.push({ x: hd[0] - 5, y: hd[1] - 4, vx: -0.5 - Math.random() * 0.6, vy: -0.9, life: 1, r: 1.5, c: '#8fb8e8' }); } }
     }
 
-    const REPS: Record<string, [string, number, number]> = { swing: ['KETTLEBELL SWINGS', 3, 1.5], burpee: ['BURPEES', 2, 2.6], box: ['BOX JUMPS', 3, 1.7] };
-    function label(kind: string, t: number, alpha: number) {
-      const [name, n, T] = REPS[kind]; const cur = Math.min(n, Math.floor(t / T) + 1);
-      const text = name, cnt = `${cur}/${n}`;
-      ctx.save(); ctx.globalAlpha = alpha; ctx.font = '700 8.6px Archivo, sans-serif'; ctx.textAlign = 'left';
-      const w1 = ctx.measureText(text).width, w2 = ctx.measureText(cnt).width, pw = w1 + w2 + 26, x = OX - 8, y = 9;
-      ctx.fillStyle = '#0d1a2d'; ctx.beginPath(); ctx.roundRect(x, y, pw, 17, 8.5); ctx.fill();
-      ctx.fillStyle = RED; ctx.beginPath(); ctx.arc(x + 9, y + 8.5, 2.6, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = BONE; ctx.fillText(text, x + 16, y + 11.6);
-      ctx.fillStyle = SLATE; ctx.fillText(cnt, x + 20 + w1, y + 11.6);
-      ctx.restore();
-    }
-
     function frame(time: number) {
       const dt = Math.max(0, Math.min(0.05, (time - prevT) / 1000)); prevT = time;
       ctx.setTransform(dpr * k, 0, 0, dpr * k, 0, 0);
@@ -307,7 +294,6 @@
       const effort = w > 0.6 && !(ex.k === 'swing' && t < 0.6);
       athlete(p, ex.k === 'swing' ? w : 0, effort, dt);
       drawParts(dt);
-      label(ex.k, t, w);
     }
 
     // ---------- cycle de vie ----------
