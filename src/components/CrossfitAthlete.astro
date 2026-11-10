@@ -1,0 +1,228 @@
+---
+// Athlète animé posé sur le bord supérieur de la section rouge : kettlebell swings, burpees, box jumps en boucle.
+---
+<canvas class="athlete" aria-hidden="true"></canvas>
+
+<script>
+  const canvas = document.querySelector<HTMLCanvasElement>('canvas.athlete');
+  if (canvas) {
+    const ctx = canvas.getContext('2d')!;
+    const BONE = '#efebe3', SLATE = '#9aa6b8', RED = '#d81d1d';
+    const SKIN = '#e3b08a', SKIN_FAR = '#b98763', TANK = '#d81d1d', TANK_FAR = '#a31616', SHORTS = '#2d4570', SHORTS_FAR = '#1f3252', HAIR = '#1b2230';
+
+    const LW = 250, LH = 112, SINK = 7;      // taille logique ; SINK = bande qui déborde sur le rouge (ombre)
+    const G = LH - SINK;                      // ligne de sol (= bord du rouge)
+    const OX = 92;                            // x de l'athlète
+    const L1 = 15, L2 = 15, A1 = 11, A2 = 10, TORSO = 22;
+    let k = 1.3, dpr = 1;
+
+    type V = [number, number];
+    type Pose = { hip: V; lean: number; feet: [V, V]; hands: [V, V]; bell?: V; bellA?: number };
+
+    // ---------- utilitaires ----------
+    const sm = (t: number) => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); };
+    const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+    const lv = (a: V, b: V, t: number): V => [lerp(a[0], b[0], t), lerp(a[1], b[1], t)];
+    const lp = (a: Pose, b: Pose, t: number): Pose => ({
+      hip: lv(a.hip, b.hip, t), lean: lerp(a.lean, b.lean, t),
+      feet: [lv(a.feet[0], b.feet[0], t), lv(a.feet[1], b.feet[1], t)],
+      hands: [lv(a.hands[0], b.hands[0], t), lv(a.hands[1], b.hands[1], t)],
+    });
+    const shoulderOf = (hip: V, lean: number): V => [hip[0] + Math.sin(lean) * TORSO, hip[1] - Math.cos(lean) * TORSO];
+
+    // Poses : coordonnées relatives à (OX, G). Les mains peuvent être données en absolu ou relatives à l'épaule.
+    function mk(hip: V, lean: number, feet: [V, V], hands: [V, V], rel = false): Pose {
+      const sh = shoulderOf(hip, lean);
+      const h: [V, V] = rel ? [[sh[0] + hands[0][0], sh[1] + hands[0][1]], [sh[0] + hands[1][0], sh[1] + hands[1][1]]] : hands;
+      return { hip, lean, feet, hands: h };
+    }
+    const STAND = mk([0, G - 29.6], 0.04, [[4, G], [-3, G]], [[2, 19.5], [-1, 19.5]], true);
+
+    // ---------- exercices ----------
+    function swing(t: number): Pose {
+      const T = 1.5, s = (1 - Math.cos((2 * Math.PI * (t % T)) / T)) / 2;   // 0 = charnière, 1 = debout
+      const e = sm(s);
+      const hip: V = [lerp(-9, 0, e), lerp(G - 23, G - 29.6, e)];
+      const lean = lerp(0.95, 0.04, e);
+      const p = mk(hip, lean, [[4, G], [-2, G]], [[0, 0], [0, 0]]);
+      const sh = shoulderOf(hip, lean);
+      const a = lerp(-0.5, 1.45, s);
+      const hand: V = [sh[0] + Math.sin(a) * 21, sh[1] + Math.cos(a) * 21];
+      p.hands = [hand, [hand[0] - 0.8, hand[1] + 0.5]];
+      p.bell = [hand[0] + Math.sin(a * 0.55) * 9, hand[1] + Math.cos(a * 0.55) * 9];
+      return p;
+    }
+
+    const K1 = mk([-6, G - 12], 1.15, [[4, G], [0, G]], [[19, G], [16, G]]);                // accroupi, mains au sol
+    const K2 = mk([-5.5, G - 17], 1.35, [[-31, G], [-34, G]], [[19, G], [16, G]]);           // planche
+    const K3 = mk([-7, G - 9], 1.45, [[-31, G], [-34, G]], [[19, G], [16, G]]);              // pompe en bas
+    const K4 = mk([4, G - 44], -0.05, [[7, G - 24], [1, G - 29]], [[3, -19], [1, -19.5]], true); // saut bras en l'air
+    const K5 = mk([-1, G - 21], 0.45, [[4, G], [-1, G]], [[8, 14], [6, 15]], true);          // réception
+    function burpee(t: number): Pose {
+      const T = 2.6, u = (t % T) / T;
+      const seq: [number, Pose, number][] = [  // [fin du segment, pose, hauteur du saut des pieds]
+        [0.10, STAND, 0], [0.22, K1, 0], [0.32, K2, 7], [0.42, K3, 0], [0.52, K2, 0], [0.62, K1, 7], [0.78, K4, 0], [0.90, K5, 0], [1.0, STAND, 0],
+      ];
+      let prevEnd = 0, prev = STAND;
+      for (const [end, pose, hop] of seq) {
+        if (u <= end) {
+          const f = (u - prevEnd) / (end - prevEnd), e = sm(f);
+          const p = lp(prev, pose, e);
+          const lift = hop * Math.sin(Math.PI * f);
+          if (hop) p.feet = [[p.feet[0][0], p.feet[0][1] - lift], [p.feet[1][0], p.feet[1][1] - lift]];
+          if (pose === K4 && f > 0) { const air = Math.sin(Math.PI * Math.min(1, f)); p.hip[1] -= 4 * air; }
+          return p;
+        }
+        prevEnd = end; prev = pose;
+      }
+      return STAND;
+    }
+
+    const BX = 40, BW = 36, BH = 24;                 // caisse : x gauche, largeur, hauteur
+    const B0 = mk([-5, G - 20], 0.6, [[3, G], [-2, G]], [[-9, 16], [-8, 16]], true);                    // élan
+    const B1 = mk([BX + 14, G - BH - 20], 0.5, [[BX + 18, G - BH], [BX + 13, G - BH]], [[8, 14], [6, 15]], true); // réception sur caisse
+    const B2 = mk([BX + 17, G - BH - 29.6], 0.04, [[BX + 20, G - BH], [BX + 14, G - BH]], [[2, 19.5], [-1, 19.5]], true); // debout sur caisse
+    const B3 = mk([-1, G - 22], 0.45, [[4, G], [-1, G]], [[8, 14], [6, 15]], true);                     // réception au sol
+    function box(t: number): Pose {
+      const T = 1.7, u = (t % T) / T;
+      const jump = (a: Pose, b: Pose, f: number, arc: number, armsUp: boolean): Pose => {
+        const e = sm(f), p = lp(a, b, e), up = Math.sin(Math.PI * f);
+        p.hip = [p.hip[0], p.hip[1] - arc * up];
+        const lift = arc * 0.9 * up;
+        p.feet = [[p.feet[0][0], p.feet[0][1] - lift], [p.feet[1][0], p.feet[1][1] - lift]];
+        const sh = shoulderOf(p.hip, p.lean);
+        if (armsUp) { const o = up; p.hands = [[sh[0] + lerp(a.hands[0][0] - shoulderOf(a.hip, a.lean)[0], 12, o), sh[1] + lerp(a.hands[0][1] - shoulderOf(a.hip, a.lean)[1], -10, o)], [sh[0] + lerp(a.hands[1][0] - shoulderOf(a.hip, a.lean)[0], 10, o), sh[1] + lerp(a.hands[1][1] - shoulderOf(a.hip, a.lean)[1], -11, o)]]; }
+        return p;
+      };
+      if (u < 0.14) return lp(STAND, B0, sm(u / 0.14));
+      if (u < 0.44) return jump(B0, B1, (u - 0.14) / 0.30, 24, true);
+      if (u < 0.56) return lp(B1, B2, sm((u - 0.44) / 0.12));
+      if (u < 0.64) return lp(B2, B2, 0);
+      if (u < 0.82) return jump(B2, B3, (u - 0.64) / 0.18, 12, false);
+      return lp(B3, STAND, sm((u - 0.82) / 0.18));
+    }
+
+    const SEQ: { k: 'swing' | 'burpee' | 'box'; d: number; fn: (t: number) => Pose }[] = [
+      { k: 'swing', d: 4.5, fn: swing }, { k: 'burpee', d: 5.2, fn: burpee }, { k: 'box', d: 5.1, fn: box },
+    ];
+    const TOTAL = SEQ.reduce((a, s) => a + s.d, 0);
+
+    // ---------- cinématique inverse (2 segments) ----------
+    function ik(sx: number, sy: number, tx: number, ty: number, l1: number, l2: number, fwd: boolean): [V, V] {
+      const dx = tx - sx, dy = ty - sy, d = Math.hypot(dx, dy);
+      const dd = Math.min(Math.max(d, 0.001), l1 + l2 - 0.001), a = Math.atan2(dy, dx);
+      const b = Math.acos(Math.max(-1, Math.min(1, (l1 * l1 + dd * dd - l2 * l2) / (2 * l1 * dd))));
+      const c1: V = [sx + l1 * Math.cos(a + b), sy + l1 * Math.sin(a + b)];
+      const c2: V = [sx + l1 * Math.cos(a - b), sy + l1 * Math.sin(a - b)];
+      const joint = fwd ? (c1[0] > c2[0] ? c1 : c2) : (c1[0] < c2[0] ? c1 : c2);
+      return [joint, [sx + dd * Math.cos(a), sy + dd * Math.sin(a)]];
+    }
+
+    // ---------- dessin ----------
+    function seg(a: V, b: V, w: number, c: string) {
+      ctx.strokeStyle = c; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+    }
+    function leg(hip: V, foot: V, far: boolean) {
+      const [knee, fo] = ik(hip[0], hip[1], foot[0], foot[1], L1, L2, true);
+      seg(hip, knee, 6.5, far ? SKIN_FAR : SKIN); seg(knee, fo, 5.5, far ? SKIN_FAR : SKIN);
+      const dx = knee[0] - hip[0], dy = knee[1] - hip[1], n = Math.hypot(dx, dy) || 1;
+      seg(hip, [hip[0] + (dx / n) * 10, hip[1] + (dy / n) * 10], 9.5, far ? SHORTS_FAR : SHORTS);
+      ctx.fillStyle = far ? '#b8b2a6' : BONE;
+      ctx.beginPath(); ctx.ellipse(fo[0] + 3.4, fo[1] - 1.6, 6.4, 3.5, 0, 0, Math.PI * 2); ctx.fill();
+      if (!far) { ctx.fillStyle = RED; ctx.fillRect(fo[0] + 1, fo[1] - 2.2, 5, 1.6); }
+    }
+    function arm(sh: V, hand: V, far: boolean) {
+      const [elbow, h] = ik(sh[0], sh[1], hand[0], hand[1], A1, A2, false);
+      seg(sh, elbow, 5.4, far ? SKIN_FAR : SKIN); seg(elbow, h, 4.8, far ? SKIN_FAR : SKIN);
+      ctx.fillStyle = far ? SKIN_FAR : SKIN; ctx.beginPath(); ctx.arc(h[0], h[1], 3, 0, Math.PI * 2); ctx.fill();
+      seg([sh[0], sh[1] - 1], [sh[0] + (elbow[0] - sh[0]) * 0.35, sh[1] - 1 + (elbow[1] - sh[1]) * 0.35], 7, far ? TANK_FAR : TANK);
+    }
+    function kettlebell(c: V, s: number) {
+      ctx.save(); ctx.translate(c[0], c[1]); ctx.scale(s, s);
+      ctx.strokeStyle = '#8795ad'; ctx.lineWidth = 3.6; ctx.beginPath(); ctx.arc(0, -4, 6, Math.PI, Math.PI * 2); ctx.stroke();
+      const g = ctx.createRadialGradient(-3, -3, 1, 0, 0, 11); g.addColorStop(0, '#c4cddb'); g.addColorStop(1, '#6b7a92');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 1, 9.5, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+    function drawBox() {
+      const x = OX + BX, top = G - BH;
+      ctx.fillStyle = '#d9cfb6'; ctx.beginPath(); ctx.roundRect(x, top, BW, BH, 2.5); ctx.fill();
+      ctx.fillStyle = '#efe6cd'; ctx.fillRect(x, top, BW, 3.5);
+      ctx.strokeStyle = '#a89c7e'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.roundRect(x + .6, top + .6, BW - 1.2, BH - 1.2, 2.5); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x, top + BH / 2); ctx.lineTo(x + BW, top + BH / 2); ctx.stroke();
+      ctx.fillStyle = '#26395a'; ctx.beginPath(); ctx.roundRect(x + BW / 2 - 7, top + 6, 14, 3.6, 1.8); ctx.fill();
+      ctx.fillStyle = RED; ctx.font = '900 7px Archivo, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('WM', x + BW / 2, top + BH - 5);
+    }
+
+    function athlete(p: Pose, bellScale: number) {
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      const hip: V = [OX + p.hip[0], p.hip[1]], lean = p.lean, sh = shoulderOf(hip, lean);
+      const feet: [V, V] = [[OX + p.feet[0][0], p.feet[0][1]], [OX + p.feet[1][0], p.feet[1][1]]];
+      const hands: [V, V] = [[OX + p.hands[0][0], p.hands[0][1]], [OX + p.hands[1][0], p.hands[1][1]]];
+      const sw = sh[0], hd: V = [sw + Math.sin(lean) * 11, sh[1] - Math.cos(lean) * 11 - 1];
+
+      // ombre sur le rouge
+      const air = Math.min(...[feet[0][1], feet[1][1]]);
+      const k2 = Math.max(0.4, 1 - (G - air) / 60);
+      ctx.fillStyle = `rgba(0,0,0,${0.28 * k2})`;
+      ctx.beginPath(); ctx.ellipse(hip[0] - Math.sin(lean) * 4, G + 3.5, 18 * k2 + Math.abs(Math.sin(lean)) * 22, 3, 0, 0, Math.PI * 2); ctx.fill();
+
+      leg(hip, feet[1], true);
+      arm(sh, hands[1], true);
+      leg(hip, feet[0], false);
+      seg([hip[0], hip[1] + 1], [sh[0], sh[1] + 1], 12.5, TANK);
+      seg([hip[0] - 0.5, hip[1] + 3], [hip[0] + 0.5, hip[1] - 1], 12.5, SHORTS);
+      ctx.fillStyle = BONE; ctx.font = '900 7px Archivo, sans-serif'; ctx.textAlign = 'center';
+      ctx.save(); ctx.translate((hip[0] + sh[0]) / 2 + 0.5, (hip[1] + sh[1]) / 2 + 3); ctx.rotate(lean); ctx.fillText('WM', 0, 0); ctx.restore();
+      arm(sh, hands[0], false);
+      seg([sh[0], sh[1] - 1], [hd[0], hd[1] + 5], 5, SKIN);
+      ctx.fillStyle = SKIN; ctx.beginPath(); ctx.arc(hd[0], hd[1], 7.4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = HAIR; ctx.beginPath(); ctx.arc(hd[0] - 0.5, hd[1] - 0.5, 7.8, Math.PI * 0.78, Math.PI * 1.95); ctx.fill();
+      seg([hd[0] - 7, hd[1] - 2.2], [hd[0] + 7, hd[1] - 3.4], 3.2, BONE);
+      ctx.fillStyle = HAIR; ctx.beginPath(); ctx.arc(hd[0] + 3.6, hd[1] + 0.8, 1.1, 0, Math.PI * 2); ctx.fill();
+      if (p.bell && bellScale > 0.02) kettlebell([OX + p.bell[0], p.bell[1]], bellScale);
+    }
+
+    function frame(time: number) {
+      ctx.setTransform(dpr * k, 0, 0, dpr * k, 0, 0);
+      ctx.clearRect(0, 0, LW, LH);
+      let t = (time / 1000) % TOTAL, ex = SEQ[0];
+      for (const s of SEQ) { if (t < s.d) { ex = s; break; } t -= s.d; }
+      const w = Math.min(sm(t / 0.45), sm((ex.d - t) / 0.45));
+      const p = lp(STAND, ex.fn(t), w);
+      if (ex.k === 'swing') p.bell = ex.fn(t).bell;
+      drawBox();
+      athlete(p, ex.k === 'swing' ? w : 0);
+    }
+
+    // ---------- cycle de vie ----------
+    function resize() {
+      k = innerWidth < 720 ? 1 : 1.3; dpr = Math.min(devicePixelRatio || 1, 2);
+      canvas!.width = Math.round(LW * k * dpr); canvas!.height = Math.round(LH * k * dpr);
+      canvas!.style.width = LW * k + 'px'; canvas!.style.height = LH * k + 'px';
+      frame(performance.now());
+    }
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let raf = 0, visible = false, t0 = 0;
+    const tick = (now: number) => { frame(now - t0); if (visible && !document.hidden) raf = requestAnimationFrame(tick); };
+    const run = () => { cancelAnimationFrame(raf); if (reduce) return; t0 = t0 || performance.now(); raf = requestAnimationFrame(tick); };
+
+    new IntersectionObserver((es) => {
+      visible = es[0].isIntersecting;
+      if (visible) { const keep = performance.now() - (lastT || performance.now()); t0 = performance.now() - keep; run(); }
+      else lastT = performance.now() - t0;
+    }).observe(canvas);
+    let lastT = 0;
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && visible) run(); });
+    addEventListener('resize', resize);
+    resize();
+    (document.fonts?.ready ?? Promise.resolve()).then(() => frame(performance.now() - t0));
+  }
+</script>
+
+<style>
+  .athlete {
+    position: absolute; right: clamp(12px, 9vw, 170px); bottom: calc(100% - 7px);
+    pointer-events: none; z-index: 2; display: block;
+  }
+</style>
