@@ -169,7 +169,7 @@
       draw(pose);
     }
     function resize() {
-      k = innerWidth < 720 ? 0.42 : 0.8; dpr = Math.min(devicePixelRatio || 1, 2); W = wrap!.clientWidth;
+      k = innerWidth < 720 ? 0.462 : 0.8; dpr = Math.min(devicePixelRatio || 1, 2); W = wrap!.clientWidth;
       canvas!.width = Math.round(LW * k * dpr); canvas!.height = Math.round(LH * k * dpr);
       canvas!.style.width = LW * k + 'px'; canvas!.style.height = LH * k + 'px';
       ctx.setTransform(dpr * k, 0, 0, dpr * k, 0, 0);
