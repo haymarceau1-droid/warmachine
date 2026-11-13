@@ -1,5 +1,4 @@
 ---
-import '@fontsource/geist/latin-500';
 import Icon from './Icon.astro';
 import Button from './Button.astro';
 import { CONTACT, ROUTES, SALLES, HORAIRES_COURTS } from '../data/site';
@@ -64,10 +63,10 @@ const salles = [SALLES.wm1, SALLES.wm2];
     <p class="legal"><a href={ROUTES.mentions}>Mentions légales</a> · <a href={ROUTES.confidentialite}>Confidentialité</a> · <a href={ROUTES.cookies}>Cookies</a> · <a href={ROUTES.cookies} data-open-cookies>Gérer les cookies</a></p>
   </div>
 
-  <!-- Bandeau signature : DA Oswald Solutions (vert nuit, crème, accent jaune) -->
+  <!-- Bandeau signature, aux couleurs WM (rouge, crème, bleu nuit) -->
   <div class="credit">
     <div class="container credit__in">
-      <p class="credit__txt">Site <strong>designé et développé</strong> par <span class="credit__brand">Oswald Solutions<i aria-hidden="true"></i></span></p>
+      <p class="credit__txt">Site <strong>designé et développé</strong> par <span class="credit__brand">Oswald Solutions</span></p>
       <a class="credit__cta" href="https://oswaldsolutions.fr" target="_blank" rel="noopener" aria-label="Oswald Solutions, studio web à Angers (nouvelle fenêtre)">
         oswaldsolutions.fr
         <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 11.5l7-7M5.5 4.5h6v6"/></svg>
@@ -108,22 +107,21 @@ const salles = [SALLES.wm1, SALLES.wm2];
   .footer__wordmark span { font-size: clamp(60px, 17vw, 247px); color: var(--navy-700); white-space: nowrap; line-height: 1; padding-top: .02em; }
   .footer__bottom { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px 24px; padding-block: 22px 26px; border-top: 1px solid var(--line); font-size: 13px; font-weight: 500; color: var(--slate); }
   .legal a:hover { color: var(--bone); }
-  .credit { background: #001d1b; border-top: 1px solid rgba(240, 242, 237, .08); font-family: 'Geist', system-ui, sans-serif; }
-  .credit__in { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; padding-block: 16px; }
-  .credit__txt { font-size: 14px; font-weight: 500; color: rgba(240, 242, 237, .62); letter-spacing: .005em; }
-  .credit__txt strong { font-weight: 500; color: #f0f2ed; }
-  .credit__brand { color: #f0f2ed; white-space: nowrap; }
-  .credit__brand i { display: inline-block; width: 6px; height: 6px; margin-left: 3px; border-radius: 50%; background: #f8f574; vertical-align: baseline; }
+  .credit { background: var(--red); color: var(--bone); }
+  .credit__in { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; padding-block: 14px; }
+  .credit__txt { font-size: 14px; font-weight: 500; color: rgba(239, 235, 227, .82); }
+  .credit__txt strong { font-weight: 600; color: var(--bone); }
+  .credit__brand { font-family: var(--font-display); font-weight: 900; font-size: 18px; letter-spacing: .05em; text-transform: uppercase; color: var(--bone); white-space: nowrap; }
   .credit__cta {
-    display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 100px;
-    background: #f8f574; color: #001d1b; font-size: 14px; font-weight: 500; letter-spacing: .005em;
+    display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; border-radius: 999px;
+    background: var(--bone); color: var(--navy); font-family: var(--font-display); font-weight: 800; font-size: 16px; letter-spacing: .05em; text-transform: uppercase;
     transition: background .25s, color .25s, transform .25s var(--ease);
   }
   .credit__cta svg { transition: transform .25s var(--ease); }
   @media (hover: hover) {
-    .credit__cta:hover { background: #f0f2ed; transform: translateY(-1px); }
+    .credit__cta:hover { background: var(--navy); color: var(--bone); transform: translateY(-1px); }
     .credit__cta:hover svg { transform: translate(2px, -2px); }
   }
-  .credit__cta:focus-visible { outline: 2px solid #f8f574; outline-offset: 3px; }
+  .credit__cta:focus-visible { outline: 2px solid var(--bone); outline-offset: 3px; }
   @media (max-width: 640px) { .credit__in { flex-direction: column; text-align: center; gap: 12px; } }
 </style>
